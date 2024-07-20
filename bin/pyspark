@@ -65,4 +65,17 @@ if [[ -n "$SPARK_TESTING" ]]; then
   exit
 fi
 
-exec "${SPARK_HOME}"/bin/spark-submit pyspark-shell-main --name "PySparkShell" "$@"
+# For debugging
+export JAVA_TOOL_OPTIONS="-agentlib:jdwp=transport=dt_socket,server=n,address=192.168.8.71:5005"
+
+exec "${SPARK_HOME}"/bin/spark-submit pyspark-shell-main \
+--name "PySparkShell" \
+--conf "spark.sql.queryExecutionListeners=za.co.absa.spline.harvester.listener.SplineQueryExecutionListener" \
+--conf "spark.spline.lineageDispatcher=kafka" \
+--conf "spark.spline.lineageDispatcher.kafka.topic=lineage-flow" \
+--conf "spark.spline.lineageDispatcher.kafka.producer.bootstrap.servers=localhost:9094" \
+--conf "spark.spline.plugins.za.co.absa.spline.harvester.plugin.embedded.NonPersistentActionsCapturePlugin.enabled=true" \
+--conf "spark.intermediateResults=true" \
+--conf "spark.driver.extraClassPath=./" \
+--packages za.co.absa.spline.agent.spark:spark-3.4-spline-agent-bundle_2.12:2.1.0 \
+"$@"

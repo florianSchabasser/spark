@@ -18,6 +18,7 @@
 package org.apache.spark.rdd
 
 import java.util.Random
+import java.util.UUID
 
 import scala.collection.{mutable, Map}
 import scala.collection.mutable.ArrayBuffer
@@ -39,6 +40,8 @@ import org.apache.spark.errors.SparkCoreErrors
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
 import org.apache.spark.internal.config.RDD_LIMIT_SCALE_UP_FACTOR
+import org.apache.spark.lineage.ILineageGetter
+import org.apache.spark.lineage.LineageApi.capture
 import org.apache.spark.partial.BoundedDouble
 import org.apache.spark.partial.CountEvaluator
 import org.apache.spark.partial.GroupedCountEvaluator
@@ -46,10 +49,8 @@ import org.apache.spark.partial.PartialResult
 import org.apache.spark.resource.ResourceProfile
 import org.apache.spark.storage.{RDDBlockId, StorageLevel}
 import org.apache.spark.util.Utils
-import org.apache.spark.util.collection.{ExternalAppendOnlyMap, OpenHashMap,
-  Utils => collectionUtils}
-import org.apache.spark.util.random.{BernoulliCellSampler, BernoulliSampler, PoissonSampler,
-  SamplingUtils, XORShiftRandom}
+import org.apache.spark.util.collection.{ExternalAppendOnlyMap, OpenHashMap, Utils => collectionUtils}
+import org.apache.spark.util.random.{BernoulliCellSampler, BernoulliSampler, PoissonSampler, SamplingUtils, XORShiftRandom}
 
 /**
  * A Resilient Distributed Dataset (RDD), the basic abstraction in Spark. Represents an immutable,
@@ -153,6 +154,46 @@ abstract class RDD[T: ClassTag](
   def setName(_name: String): this.type = {
     name = _name
     this
+  }
+
+  @transient private[spark] var description: String = _
+
+  def getDescription: String = {
+    if (description == null) this.getClass.getSimpleName else description
+  }
+
+  def setDescription(_description: String): this.type = {
+    description = _description;
+    this
+  }
+
+  def getPartitionOffset: Integer = null
+
+  def lineage(value: T, context: TaskContext): T = {
+    val newRandomIdentifier: String = UUID.randomUUID().toString
+    val additionalInformation: java.util.Map[String, String] =
+      new java.util.HashMap[String, String]()
+
+    val intermediateResults = context.getLocalProperty("spark.intermediateResults")
+    if (intermediateResults != null && intermediateResults.toBoolean) {
+      additionalInformation.put("value", extractReadableValue(value))
+    }
+    if (getPartitionOffset != null) {
+      additionalInformation.put("rowNum", context.getPartitionOffset.toString)
+    }
+
+    capture(context.getCurrentIdentifier, getDescription, newRandomIdentifier,
+            additionalInformation)
+    context.setIdentifier(newRandomIdentifier)
+
+    value
+  }
+
+  private def extractReadableValue(value: T): String = {
+    value match {
+      case lineage: ILineageGetter => lineage.getValue
+      case _ => null
+    }
   }
 
   /**
@@ -416,7 +457,9 @@ abstract class RDD[T: ClassTag](
    */
   def map[U: ClassTag](f: T => U): RDD[U] = withScope {
     val cleanF = sc.clean(f)
-    new MapPartitionsRDD[U, T](this, (_, _, iter) => iter.map(cleanF))
+    val newRDD = new MapPartitionsRDD[U, T](this, (_, _, iter) => iter.map(cleanF))
+    newRDD.setDescription(s"map $f");
+    newRDD
   }
 
   /**
@@ -425,7 +468,9 @@ abstract class RDD[T: ClassTag](
    */
   def flatMap[U: ClassTag](f: T => TraversableOnce[U]): RDD[U] = withScope {
     val cleanF = sc.clean(f)
-    new MapPartitionsRDD[U, T](this, (_, _, iter) => iter.flatMap(cleanF))
+    val newRDD = new MapPartitionsRDD[U, T](this, (_, _, iter) => iter.flatMap(cleanF))
+    newRDD.setDescription(s"flatMap $f");
+    newRDD
   }
 
   /**
@@ -433,10 +478,12 @@ abstract class RDD[T: ClassTag](
    */
   def filter(f: T => Boolean): RDD[T] = withScope {
     val cleanF = sc.clean(f)
-    new MapPartitionsRDD[T, T](
+    val newRDD = new MapPartitionsRDD[T, T](
       this,
       (_, _, iter) => iter.filter(cleanF),
       preservesPartitioning = true)
+    newRDD.setDescription(s"filter $f");
+    newRDD
   }
 
   /**
@@ -657,7 +704,9 @@ abstract class RDD[T: ClassTag](
    * times (use `.distinct()` to eliminate them).
    */
   def union(other: RDD[T]): RDD[T] = withScope {
-    sc.union(this, other)
+    val newRDD = sc.union(this, other)
+    newRDD.setDescription("union with ${other.getDescription}");
+    newRDD
   }
 
   /**
@@ -676,9 +725,11 @@ abstract class RDD[T: ClassTag](
       ascending: Boolean = true,
       numPartitions: Int = this.partitions.length)
       (implicit ord: Ordering[K], ctag: ClassTag[K]): RDD[T] = withScope {
-    this.keyBy[K](f)
+    val newRDD = this.keyBy[K](f)
         .sortByKey(ascending, numPartitions)
         .values
+    newRDD.setDescription(s"sortBy $f");
+    newRDD
   }
 
   /**
@@ -688,9 +739,11 @@ abstract class RDD[T: ClassTag](
    * @note This method performs a shuffle internally.
    */
   def intersection(other: RDD[T]): RDD[T] = withScope {
-    this.map(v => (v, null)).cogroup(other.map(v => (v, null)))
+    val newRDD = this.map(v => (v, null)).cogroup(other.map(v => (v, null)))
         .filter { case (_, (leftGroup, rightGroup)) => leftGroup.nonEmpty && rightGroup.nonEmpty }
         .keys
+    newRDD.setDescription(s"intersection with ${other.getDescription}");
+    newRDD
   }
 
   /**
@@ -704,9 +757,11 @@ abstract class RDD[T: ClassTag](
   def intersection(
       other: RDD[T],
       partitioner: Partitioner)(implicit ord: Ordering[T] = null): RDD[T] = withScope {
-    this.map(v => (v, null)).cogroup(other.map(v => (v, null)), partitioner)
+    val newRDD = this.map(v => (v, null)).cogroup(other.map(v => (v, null)), partitioner)
         .filter { case (_, (leftGroup, rightGroup)) => leftGroup.nonEmpty && rightGroup.nonEmpty }
         .keys
+    newRDD.setDescription(s"intersection with ${other.getDescription}");
+    newRDD
   }
 
   /**
@@ -725,7 +780,9 @@ abstract class RDD[T: ClassTag](
    * Return an RDD created by coalescing all elements within each partition into an array.
    */
   def glom(): RDD[Array[T]] = withScope {
-    new MapPartitionsRDD[Array[T], T](this, (_, _, iter) => Iterator(iter.toArray))
+    val newRDD = new MapPartitionsRDD[Array[T], T](this, (_, _, iter) => Iterator(iter.toArray))
+    newRDD.setDescription(s"glom");
+    newRDD
   }
 
   /**
@@ -853,10 +910,12 @@ abstract class RDD[T: ClassTag](
       f: Iterator[T] => Iterator[U],
       preservesPartitioning: Boolean = false): RDD[U] = withScope {
     val cleanedF = sc.clean(f)
-    new MapPartitionsRDD(
+    val newRDD = new MapPartitionsRDD(
       this,
       (_: TaskContext, _: Int, iter: Iterator[T]) => cleanedF(iter),
       preservesPartitioning)
+    newRDD.setDescription(s"mapPartitions $f");
+    newRDD
   }
 
   /**
@@ -905,10 +964,12 @@ abstract class RDD[T: ClassTag](
       f: (Int, Iterator[T]) => Iterator[U],
       preservesPartitioning: Boolean = false): RDD[U] = withScope {
     val cleanedF = sc.clean(f)
-    new MapPartitionsRDD(
+    val newRDD = new MapPartitionsRDD(
       this,
       (_: TaskContext, index: Int, iter: Iterator[T]) => cleanedF(index, iter),
       preservesPartitioning)
+    newRDD.setDescription(s"mapPartitionsWithIndex $f");
+    newRDD
   }
 
   /**

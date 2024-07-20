@@ -19,9 +19,8 @@ package org.apache.spark.rdd
 
 import java.io.{FileNotFoundException, IOException}
 import java.text.SimpleDateFormat
-import java.util.{Date, Locale}
+import java.util.{Date, Locale, UUID}
 
-import scala.collection.immutable.Map
 import scala.reflect.ClassTag
 
 import org.apache.hadoop.conf.{Configurable, Configuration}
@@ -141,6 +140,10 @@ class HadoopRDD[K, V](
 
   private val ignoreEmptySplits = sparkContext.conf.get(HADOOP_RDD_IGNORE_EMPTY_SPLITS)
 
+  private var partitionOffset: Integer = 0
+
+  override def getPartitionOffset: Integer = partitionOffset
+
   // Returns a JobConf that will be used on executors to obtain input splits for Hadoop reads.
   protected def getJobConf(): JobConf = {
     val conf: Configuration = broadcastedConf.value.value
@@ -246,6 +249,8 @@ class HadoopRDD[K, V](
 
       private val split = theSplit.asInstanceOf[HadoopPartition]
       logInfo("Input split: " + split.inputSplit)
+      private val splitId: Int = split.index;
+      private var recordId: Int = 0;
       private val jobConf = getJobConf()
 
       private val inputMetrics = context.taskMetrics().inputMetrics
@@ -310,6 +315,9 @@ class HadoopRDD[K, V](
       private val value: V = if (reader == null) null.asInstanceOf[V] else reader.createValue()
 
       override def getNext(): (K, V) = {
+        recordId += 1
+        partitionOffset = splitId + recordId
+        context.setIdentifier(UUID.randomUUID().toString)
         try {
           finished = !reader.next(key, value)
         } catch {
@@ -360,7 +368,7 @@ class HadoopRDD[K, V](
         }
       }
     }
-    new InterruptibleIterator[(K, V)](context, iter)
+    new InterruptibleIterator[(K, V)](context, iter.map(v => lineage(v, context)))
   }
 
   /** Maps over a partition, providing the InputSplit that was used as the base of the partition. */
@@ -443,7 +451,7 @@ private[spark] object HadoopRDD extends Logging {
     override def compute(split: Partition, context: TaskContext): Iterator[U] = {
       val partition = split.asInstanceOf[HadoopPartition]
       val inputSplit = partition.inputSplit.value
-      f(inputSplit, firstParent[T].iterator(split, context))
+      f(inputSplit, firstParent[T].iterator(split, context)).map(v => lineage(v, context))
     }
   }
 

@@ -300,4 +300,12 @@ abstract class TaskContext extends Serializable {
 
   /** Gets local properties set upstream in the driver. */
   private[spark] def getLocalProperties: Properties
+
+  private[spark] def setIdentifier(id: String): Unit
+
+  private[spark] def getCurrentIdentifier: String
+
+  private[spark] def setPartitionOffset(offset: Integer): Unit
+
+  private[spark] def getPartitionOffset: Integer
 }

@@ -92,6 +92,11 @@ private[spark] class TaskContextImpl(
   // hide the exception.  See SPARK-19276
   @volatile private var _fetchFailedException: Option[FetchFailedException] = None
 
+  // Lineage: Used to keep track of the assigned identifier within a stage
+  @transient private var currentIdentifier: String = ""
+
+  @transient private var partitionOffset: Integer = 0;
+
   override def addTaskCompletionListener(listener: TaskCompletionListener): this.type = {
     val needToCallListener = synchronized {
       // If there is already a thread invoking listeners, adding the new listener to
@@ -270,6 +275,22 @@ private[spark] class TaskContextImpl(
 
   private[spark] override def getKillReason(): Option[String] = {
     reasonIfKilled
+  }
+
+  private[spark] override def setIdentifier(id: String): Unit = {
+    this.currentIdentifier = id;
+  }
+
+  private[spark] override def getCurrentIdentifier: String = {
+    this.currentIdentifier;
+  }
+
+  private[spark] override def setPartitionOffset(offset: Integer): Unit = {
+    this.partitionOffset = offset;
+  }
+
+  private[spark] override def getPartitionOffset: Integer = {
+    this.partitionOffset;
   }
 
   @GuardedBy("this")

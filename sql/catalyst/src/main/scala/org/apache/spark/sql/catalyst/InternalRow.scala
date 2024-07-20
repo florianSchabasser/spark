@@ -17,6 +17,7 @@
 
 package org.apache.spark.sql.catalyst
 
+import org.apache.spark.lineage.ILineageGetter
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.types._
 import org.apache.spark.sql.catalyst.util.{ArrayData, MapData}
@@ -27,7 +28,9 @@ import org.apache.spark.unsafe.types.{CalendarInterval, UTF8String}
  * An abstract class for row used internally in Spark SQL, which only contains the columns as
  * internal types.
  */
-abstract class InternalRow extends SpecializedGetters with Serializable {
+abstract class InternalRow extends SpecializedGetters with ILineageGetter with Serializable {
+
+  override def getValue: String = getString(0)
 
   def numFields: Int
 
