@@ -273,11 +273,6 @@ class BarrierTaskContext private[spark] (
 
   override private[spark] def getCurrentIdentifier: String = taskContext.getCurrentIdentifier
 
-  override private[spark] def setPartitionOffset(offset: Integer): Unit =
-    taskContext.setPartitionOffset(offset)
-
-  override private[spark] def getPartitionOffset: Integer = taskContext.getPartitionOffset
-
 }
 
 @Experimental

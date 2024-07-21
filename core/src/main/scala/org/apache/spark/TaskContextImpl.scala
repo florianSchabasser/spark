@@ -285,14 +285,6 @@ private[spark] class TaskContextImpl(
     this.currentIdentifier;
   }
 
-  private[spark] override def setPartitionOffset(offset: Integer): Unit = {
-    this.partitionOffset = offset;
-  }
-
-  private[spark] override def getPartitionOffset: Integer = {
-    this.partitionOffset;
-  }
-
   @GuardedBy("this")
   override def isCompleted(): Boolean = synchronized(completed)
 

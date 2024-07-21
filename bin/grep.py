@@ -11,14 +11,17 @@ spark = SparkSession.builder \
 pattern = "Neo4j"
 
 # Read the input text file into a DataFrame
-input_file = "logs.txt"
+input_file = "hdfs://localhost:9000/user/root/input/numbers.txt"
+output_file = "hdfs://localhost:9000/user/root/output/numbers.txt"
+
 df = spark.read.text(input_file)
+df.write.mode("overwrite").text(output_file)
 
 # Filter rows that contain the pattern
 filtered_df = df.filter(col("value").contains(pattern))
 
 # Show the results
-filtered_df.show(truncate=False)
+df.saveAsTextFile(output_file)
 
 # Stop the SparkSession
 spark.stop()

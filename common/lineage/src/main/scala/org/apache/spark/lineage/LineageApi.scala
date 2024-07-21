@@ -18,6 +18,7 @@
 package org.apache.spark.lineage
 
 import java.util
+import java.util.UUID
 
 import org.apache.kafka.clients.producer.KafkaProducer
 
@@ -34,9 +35,10 @@ object LineageApi
   private val producer =
     new KafkaProducer(config, keySerializer, valueSerializer)
 
-  override def capture(id: String, name: String, reference: String,
+  override def capture(name: String, hashIn: String, hashOut: String,
                        additionalInformation: util.Map[String, String]): Unit = {
-    val lineageRecord: LineageTracking = LineageTracking(id, name, reference, additionalInformation)
+    val lineageRecord: LineageTracking = LineageTracking(
+      UUID.randomUUID().toString, name, hashIn, hashOut, additionalInformation)
     produce(producer, topic, lineageRecord.id, lineageRecord.toJsonString)
   }
 }

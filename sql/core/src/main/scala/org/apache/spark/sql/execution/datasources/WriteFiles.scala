@@ -84,6 +84,7 @@ case class WriteFilesExec(
     val description = writeFilesSpec.description
     val committer = writeFilesSpec.committer
     val jobTrackerID = SparkHadoopWriterUtils.createJobTrackerID(new Date())
+    rddWithNonEmptyPartitions.lineageBarrier = true
     rddWithNonEmptyPartitions.mapPartitionsInternal { iterator =>
       val sparkStageId = TaskContext.get().stageId()
       val sparkPartitionId = TaskContext.get().partitionId()

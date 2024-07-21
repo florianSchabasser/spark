@@ -19,7 +19,7 @@ package org.apache.spark.lineage
 
 import java.util
 
-case class LineageTracking(id: String, name: String, reference: String,
+case class LineageTracking(id: String, name: String, hashIn: String, hashOut: String,
                            additionalInformation: util.Map[String, String]) {
 }
 

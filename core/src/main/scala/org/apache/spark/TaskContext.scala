@@ -305,7 +305,4 @@ abstract class TaskContext extends Serializable {
 
   private[spark] def getCurrentIdentifier: String
 
-  private[spark] def setPartitionOffset(offset: Integer): Unit
-
-  private[spark] def getPartitionOffset: Integer
 }
