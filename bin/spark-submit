@@ -24,4 +24,16 @@ fi
 # disable randomized hash for string in Python 3.3+
 export PYTHONHASHSEED=0
 
-exec "${SPARK_HOME}"/bin/spark-class org.apache.spark.deploy.SparkSubmit "$@"
+# For debugging
+export JAVA_TOOL_OPTIONS="-agentlib:jdwp=transport=dt_socket,server=n,address=ip-172-31-34-14.eu-central-1.compute.internal:5005"
+export JAVA_HOME="/home/ec2-user/.jdks/corretto-1.8.0_422"
+
+exec "${SPARK_HOME}"/bin/spark-class org.apache.spark.deploy.SparkSubmit "$@" \
+--conf "spark.sql.queryExecutionListeners=za.co.absa.spline.harvester.listener.SplineQueryExecutionListener" \
+--conf "spark.spline.lineageDispatcher=kafka" \
+--conf "spark.spline.lineageDispatcher.kafka.topic=lineage-graph" \
+--conf "spark.spline.lineageDispatcher.kafka.producer.bootstrap.servers=localhost:9094" \
+--conf "spark.spline.plugins.za.co.absa.spline.harvester.plugin.embedded.NonPersistentActionsCapturePlugin.enabled=true" \
+--conf "spark.intermediateResults=true" \
+--conf "spark.driver.extraClassPath=./" \
+--packages za.co.absa.spline.agent.spark:spark-3.4-spline-agent-bundle_2.12:2.1.0
