@@ -65,4 +65,4 @@ if [[ -n "$SPARK_TESTING" ]]; then
   exit
 fi
 
-exec "${SPARK_HOME}"/bin/spark-submit pyspark-shell-main --name "PySparkShell" "$@"
+exec "${SPARK_HOME}"/bin/spark-submit pyspark-shell-main --name "PySparkShell" --master local[3] "$@"

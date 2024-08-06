@@ -15,14 +15,19 @@
  * limitations under the License.
  */
 
-package org.apache.spark.lineage
+package org.apache.spark.lineage.config
+
+import java.util
 
 import scala.collection.JavaConverters.{asScalaSetConverter, mapAsJavaMapConverter}
 
 import com.typesafe.config.Config
+import pureconfig.ConfigSource
+import pureconfig.generic.auto.exportReader
 
+case class ProducerConfig(producer: Config)
 
-trait ClientConfig {
+object ProducerConfig {
   implicit class configMapperOps(config: Config) {
     def asJavaMap: java.util.Map[String, AnyRef] = config.toMap.asJava
 
@@ -31,5 +36,9 @@ trait ClientConfig {
       .asScala
       .map(pair => (pair.getKey, config.getAnyRef(pair.getKey)))
       .toMap
+  }
+
+  def getConfig(resource: String): util.Map[String, AnyRef] = {
+    ConfigSource.resources(resource).loadOrThrow[ProducerConfig].producer.asJavaMap
   }
 }

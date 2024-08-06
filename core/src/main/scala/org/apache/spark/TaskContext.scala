@@ -305,4 +305,7 @@ abstract class TaskContext extends Serializable {
 
   private[spark] def getCurrentIdentifier: String
 
+  private[spark] def getWriteIdentifier: String
+
+  private[spark] def setWriteIdentifier(id: String): Unit
 }

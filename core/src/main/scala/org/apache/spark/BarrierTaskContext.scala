@@ -273,6 +273,10 @@ class BarrierTaskContext private[spark] (
 
   override private[spark] def getCurrentIdentifier: String = taskContext.getCurrentIdentifier
 
+  override private[spark] def getWriteIdentifier: String = taskContext.getWriteIdentifier
+
+  override private[spark] def setWriteIdentifier(id: String): Unit =
+    taskContext.setWriteIdentifier(id)
 }
 
 @Experimental

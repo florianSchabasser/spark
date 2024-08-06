@@ -19,7 +19,6 @@ package org.apache.spark.sql.execution.datasources
 
 import java.io.{Closeable, FileNotFoundException, IOException}
 import java.net.URI
-import java.util.UUID
 
 import scala.util.control.NonFatal
 
@@ -88,14 +87,9 @@ class FileScanRDD(
 
   private val ignoreCorruptFiles = options.ignoreCorruptFiles
   private val ignoreMissingFiles = options.ignoreMissingFiles
-  private var partitionOffset: Integer = 0
-
-  override def getPartitionOffset: Integer = partitionOffset
 
   override def compute(split: RDDPartition, context: TaskContext): Iterator[InternalRow] = {
     val iterator = new Iterator[Object] with AutoCloseable {
-      private val splitId: Int = split.index.toShort
-      private var recordId: Int = 0
       private val inputMetrics = context.taskMetrics().inputMetrics
       private val existingBytesRead = inputMetrics.bytesRead
 
@@ -203,9 +197,6 @@ class FileScanRDD(
         val nextElement = currentIterator.next()
         // TODO: we should have a better separation of row based and batch based scan, so that we
         // don't need to run this `if` for every record.
-        recordId += 1
-        partitionOffset = recordId + splitId
-        context.setIdentifier(UUID.randomUUID().toString)
         nextElement match {
           case batch: ColumnarBatch =>
             incTaskInputMetricsBytesRead()
@@ -320,7 +311,7 @@ class FileScanRDD(
     // Register an on-task-completion callback to close the input stream.
     context.addTaskCompletionListener[Unit](_ => iterator.close())
 
-    iterator.asInstanceOf[Iterator[InternalRow]].map(v => lineage(v, context))
+    iterator.asInstanceOf[Iterator[InternalRow]]
   }
 
   override protected def getPartitions: Array[RDDPartition] = filePartitions.toArray

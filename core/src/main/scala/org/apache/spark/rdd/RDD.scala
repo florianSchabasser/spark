@@ -41,7 +41,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
 import org.apache.spark.internal.config.RDD_LIMIT_SCALE_UP_FACTOR
 import org.apache.spark.lineage.ILineageGetter
-import org.apache.spark.lineage.LineageApi.capture
+import org.apache.spark.lineage.LineageApi.{capture, flowLink, register}
 import org.apache.spark.partial.BoundedDouble
 import org.apache.spark.partial.CountEvaluator
 import org.apache.spark.partial.GroupedCountEvaluator
@@ -114,6 +114,11 @@ abstract class RDD[T: ClassTag](
   @DeveloperApi
   def compute(split: Partition, context: TaskContext): Iterator[T]
 
+  private def computeWithLineage(split: Partition, context: TaskContext): Iterator[T] = {
+    linkLineageNode()
+    compute(split, context).map(v => lineage(v, context))
+  }
+
   /**
    * Implemented by subclasses to return the set of partitions in this RDD. This method will only
    * be called once, so it is safe to implement a time-consuming computation in it.
@@ -147,6 +152,17 @@ abstract class RDD[T: ClassTag](
   /** A unique ID for this RDD (within its SparkContext). */
   val id: Int = sc.newRddId()
 
+  /** Globally unique ID over multiple SparkContext */
+  val globalId: String = s"${sc.applicationId}#${id}"
+
+  register(globalId, if (sc.hasName) sc.getName else this.getClass.getSimpleName,
+    sc.getDescription)
+
+  /** Determine whether the value should be transferred with the lineage or not */
+  private val transferValue: String = sc.getConf.get("spark.rdd.intermediateResults")
+
+  private var getHashOut: () => String = () => UUID.randomUUID().toString
+
   /** A friendly name for this RDD */
   @transient var name: String = _
 
@@ -156,48 +172,31 @@ abstract class RDD[T: ClassTag](
     this
   }
 
-  var lineageBarrier: Boolean = false
-  private val barrierId: String = UUID.randomUUID().toString
-
-  private[spark] var description: String = _
-
-  def getDescription: String = {
-    if (description == null) this.getClass.getSimpleName else description
-  }
-
-  def setDescription(_description: String): this.type = {
-    description = _description;
-    this
-  }
-
-  def getPartitionOffset: Integer = null
-
   def lineage(value: T, context: TaskContext): T = {
-    val newRandomIdentifier: String = if (lineageBarrier) barrierId else UUID.randomUUID().toString
+    val hashOut: String = getHashOut()
 
-    val additionalInformation: java.util.Map[String, String] =
-      new java.util.HashMap[String, String]()
-
-    val intermediateResults = context.getLocalProperty("spark.intermediateResults")
-    if (intermediateResults != null && intermediateResults.toBoolean) {
-      additionalInformation.put("value", extractReadableValue(value))
-    }
-    if (getPartitionOffset != null) {
-      additionalInformation.put("rowNum", getPartitionOffset.toString)
-    }
-
-    capture(getDescription, context.getCurrentIdentifier, newRandomIdentifier,
-            additionalInformation)
-    context.setIdentifier(newRandomIdentifier)
+    capture(globalId, context.getCurrentIdentifier, hashOut, extractValue(value))
+    context.setIdentifier(hashOut)
 
     value
   }
 
-  private def extractReadableValue(value: T): String = {
-    value match {
-      case lineage: ILineageGetter => lineage.getValue
-      case _ => null
+  private def linkLineageNode(): Unit = {
+    if (dependencies.nonEmpty) {
+      flowLink(firstParent.globalId, globalId)
     }
+  }
+
+  private def extractValue(value: T): String = {
+    if (transferValue != null && transferValue.toBoolean) {
+      return value match {
+        case getter: ILineageGetter => getter.getValue
+        case tuple: (?, ?) => s"${tuple._2}"
+        case plain: String => plain
+        case any => any.toString
+      }
+    }
+    null
   }
 
   /**
@@ -409,7 +408,7 @@ abstract class RDD[T: ClassTag](
     if (isCheckpointedAndMaterialized) {
       firstParent[T].iterator(split, context)
     } else {
-      compute(split, context)
+      computeWithLineage(split, context)
     }
   }
 
@@ -459,35 +458,36 @@ abstract class RDD[T: ClassTag](
   /**
    * Return a new RDD by applying a function to all elements of this RDD.
    */
-  def map[U: ClassTag](f: T => U): RDD[U] = withScope {
+  def map[U: ClassTag](f: T => U, description: String = null): RDD[U] = withScope {
+    this.sc.setNextName("Map")
+    this.sc.setNextDescription(description)
     val cleanF = sc.clean(f)
-    val newRDD = new MapPartitionsRDD[U, T](this, (_, _, iter) => iter.map(cleanF))
-    newRDD.setDescription(s"Map $f");
-    newRDD
+    new MapPartitionsRDD[U, T](this, (_, _, iter) => iter.map(cleanF))
   }
 
   /**
    *  Return a new RDD by first applying a function to all elements of this
    *  RDD, and then flattening the results.
    */
-  def flatMap[U: ClassTag](f: T => TraversableOnce[U]): RDD[U] = withScope {
+  def flatMap[U: ClassTag](f: T => TraversableOnce[U], description: String = null): RDD[U] =
+    withScope {
+    this.sc.setNextName("FlatMap")
+    this.sc.setNextDescription(description)
     val cleanF = sc.clean(f)
-    val newRDD = new MapPartitionsRDD[U, T](this, (_, _, iter) => iter.flatMap(cleanF))
-    newRDD.setDescription(s"FlatMap $f");
-    newRDD
+    new MapPartitionsRDD[U, T](this, (_, _, iter) => iter.flatMap(cleanF))
   }
 
   /**
    * Return a new RDD containing only the elements that satisfy a predicate.
    */
-  def filter(f: T => Boolean): RDD[T] = withScope {
+  def filter(f: T => Boolean, description: String = null): RDD[T] = withScope {
+    this.sc.setNextName("Filter")
+    this.sc.setNextDescription(description)
     val cleanF = sc.clean(f)
-    val newRDD = new MapPartitionsRDD[T, T](
+    new MapPartitionsRDD[T, T](
       this,
       (_, _, iter) => iter.filter(cleanF),
       preservesPartitioning = true)
-    newRDD.setDescription(s"Filter $f");
-    newRDD
   }
 
   /**
@@ -708,9 +708,7 @@ abstract class RDD[T: ClassTag](
    * times (use `.distinct()` to eliminate them).
    */
   def union(other: RDD[T]): RDD[T] = withScope {
-    val newRDD = sc.union(this, other)
-    newRDD.setDescription("Union with ${other.getDescription}");
-    newRDD
+    sc.union(this, other)
   }
 
   /**
@@ -729,11 +727,9 @@ abstract class RDD[T: ClassTag](
       ascending: Boolean = true,
       numPartitions: Int = this.partitions.length)
       (implicit ord: Ordering[K], ctag: ClassTag[K]): RDD[T] = withScope {
-    val newRDD = this.keyBy[K](f)
+    this.keyBy[K](f)
         .sortByKey(ascending, numPartitions)
         .values
-    newRDD.setDescription(s"SortBy $f");
-    newRDD
   }
 
   /**
@@ -743,11 +739,9 @@ abstract class RDD[T: ClassTag](
    * @note This method performs a shuffle internally.
    */
   def intersection(other: RDD[T]): RDD[T] = withScope {
-    val newRDD = this.map(v => (v, null)).cogroup(other.map(v => (v, null)))
+    this.map(v => (v, null)).cogroup(other.map(v => (v, null)))
         .filter { case (_, (leftGroup, rightGroup)) => leftGroup.nonEmpty && rightGroup.nonEmpty }
         .keys
-    newRDD.setDescription(s"Intersection with ${other.getDescription}");
-    newRDD
   }
 
   /**
@@ -761,11 +755,9 @@ abstract class RDD[T: ClassTag](
   def intersection(
       other: RDD[T],
       partitioner: Partitioner)(implicit ord: Ordering[T] = null): RDD[T] = withScope {
-    val newRDD = this.map(v => (v, null)).cogroup(other.map(v => (v, null)), partitioner)
+    this.map(v => (v, null)).cogroup(other.map(v => (v, null)), partitioner)
         .filter { case (_, (leftGroup, rightGroup)) => leftGroup.nonEmpty && rightGroup.nonEmpty }
         .keys
-    newRDD.setDescription(s"Intersection with ${other.getDescription}");
-    newRDD
   }
 
   /**
@@ -784,9 +776,7 @@ abstract class RDD[T: ClassTag](
    * Return an RDD created by coalescing all elements within each partition into an array.
    */
   def glom(): RDD[Array[T]] = withScope {
-    val newRDD = new MapPartitionsRDD[Array[T], T](this, (_, _, iter) => Iterator(iter.toArray))
-    newRDD.setDescription(s"Glom");
-    newRDD
+    new MapPartitionsRDD[Array[T], T](this, (_, _, iter) => Iterator(iter.toArray))
   }
 
   /**
@@ -914,12 +904,10 @@ abstract class RDD[T: ClassTag](
       f: Iterator[T] => Iterator[U],
       preservesPartitioning: Boolean = false): RDD[U] = withScope {
     val cleanedF = sc.clean(f)
-    val newRDD = new MapPartitionsRDD(
+    new MapPartitionsRDD(
       this,
       (_: TaskContext, _: Int, iter: Iterator[T]) => cleanedF(iter),
       preservesPartitioning)
-    newRDD.setDescription(s"MapPartitions $f");
-    newRDD
   }
 
   /**
@@ -951,12 +939,10 @@ abstract class RDD[T: ClassTag](
   private[spark] def mapPartitionsInternal[U: ClassTag](
       f: Iterator[T] => Iterator[U],
       preservesPartitioning: Boolean = false): RDD[U] = withScope {
-    val newRDD = new MapPartitionsRDD(
+    new MapPartitionsRDD(
       this,
       (_: TaskContext, _: Int, iter: Iterator[T]) => f(iter),
       preservesPartitioning)
-    newRDD.setDescription(s"MapPartitionsInternal $f");
-    newRDD
   }
 
   /**
@@ -970,12 +956,10 @@ abstract class RDD[T: ClassTag](
       f: (Int, Iterator[T]) => Iterator[U],
       preservesPartitioning: Boolean = false): RDD[U] = withScope {
     val cleanedF = sc.clean(f)
-    val newRDD = new MapPartitionsRDD(
+    new MapPartitionsRDD(
       this,
       (_: TaskContext, index: Int, iter: Iterator[T]) => cleanedF(index, iter),
       preservesPartitioning)
-    newRDD.setDescription(s"MapPartitionsWithIndex $f");
-    newRDD
   }
 
   /**
@@ -1680,14 +1664,18 @@ abstract class RDD[T: ClassTag](
    * Save this RDD as a compressed text file, using string representations of elements.
    */
   def saveAsTextFile(path: String, codec: Class[_ <: CompressionCodec]): Unit = withScope {
-    this.mapPartitions { iter =>
+    sc.setNextName("Save")
+    sc.setNextDescription(s"Save to ${path}")
+    val rdd = this.mapPartitions { iter =>
       val text = new Text()
       iter.map { x =>
         require(x != null, "text files do not allow null rows")
         text.set(x.toString)
         (NullWritable.get(), text)
       }
-    }.saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](path, codec)
+    }
+    rdd.getHashOut = () => TaskContext.get().getWriteIdentifier
+    rdd.saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](path, codec)
   }
 
   /**

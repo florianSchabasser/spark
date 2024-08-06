@@ -134,6 +134,7 @@ object SparkHadoopWriter extends Logging {
     try {
       val ret = Utils.tryWithSafeFinallyAndFailureCallbacks {
         while (iterator.hasNext) {
+          context.setWriteIdentifier(s"${sparkPartitionId}#${recordsWritten}")
           val pair = iterator.next()
           config.write(pair)
 

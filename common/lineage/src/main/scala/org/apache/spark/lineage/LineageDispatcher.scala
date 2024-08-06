@@ -20,22 +20,37 @@ package org.apache.spark.lineage
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.apache.kafka.common.serialization.StringSerializer
 
-trait JsonStringSerializer[T] {
+import org.apache.spark.lineage.config.ProducerConfig.getConfig
+import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 
-  implicit val keySerializer: StringSerializer = new StringSerializer()
-  implicit val valueSerializer: StringSerializer = new StringSerializer()
+object LineageDispatcher {
 
-  implicit val jsonMapper: JsonMapper = JsonMapper
+  private val config = getConfig("./kafka.conf")
+  private val producer = new KafkaProducer(config, new StringSerializer(), new StringSerializer())
+  private val jsonMapper: JsonMapper = JsonMapper
     .builder()
     .addModule(DefaultScalaModule)
     .addModule(new JavaTimeModule())
     .build()
 
-  implicit class ValueOps(value: T) {
-    def toJsonString()(implicit jsonMapper: JsonMapper): String = {
-      jsonMapper.writeValueAsString(value)
-    }
+  def register(nodeRegistration: LNodeRegistration): Unit = {
+    val record = new ProducerRecord[String, String]("lineage-node-registration",
+      "lineage-node-registration", jsonMapper.writeValueAsString(nodeRegistration))
+    producer.send(record)
+  }
+
+  def link(nodeLink: LNodeLink): Unit = {
+    val record = new ProducerRecord[String, String]("lineage-node-link", "lineage-node-link",
+      jsonMapper.writeValueAsString(nodeLink))
+    producer.send(record)
+  }
+
+  def capture(flow: LFlow): Unit = {
+    val record = new ProducerRecord[String, String]("lineage-flow", "lineage-flow",
+      jsonMapper.writeValueAsString(flow))
+    producer.send(record)
   }
 }

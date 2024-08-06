@@ -17,28 +17,48 @@
 
 package org.apache.spark.lineage
 
-import java.util
-import java.util.UUID
-
-import org.apache.kafka.clients.producer.KafkaProducer
-
 import org.apache.spark.internal.Logging
+import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 
-object LineageApi
-  extends ILineageApi
-  with ProducerUtils[LineageTracking]
-  with JsonStringSerializer[LineageTracking]
-  with Logging {
+object LineageApi extends ILineageApi with Logging {
 
-  private val (config, topic) = ProducerConfig.getConfig("./kafka.conf")
+  override def register(nodeId: String, name: String, description: String): Unit = {
+    LineageDispatcher.register(LNodeRegistration(nodeId, name, description))
+  }
 
-  private val producer =
-    new KafkaProducer(config, keySerializer, valueSerializer)
+  override def commit(nodeId: String): Unit = {
 
-  override def capture(name: String, hashIn: String, hashOut: String,
-                       additionalInformation: util.Map[String, String]): Unit = {
-    val lineageRecord: LineageTracking = LineageTracking(
-      UUID.randomUUID().toString, name, hashIn, hashOut, additionalInformation)
-    produce(producer, topic, lineageRecord.id, lineageRecord.toJsonString)
+  }
+
+  override def flowLink(srcNodeId: String, destNodeId: String): Unit = {
+    LineageDispatcher.link(LNodeLink(srcNodeId, destNodeId))
+  }
+
+  override def capture(nodeId: String, hashIn: String, hashOut: String): Unit = {
+    capture(nodeId, hashIn, hashOut, null)
+  }
+
+  override def capture(nodeId: String, hashIn: String, hashOut: String, value: String): Unit = {
+    LineageDispatcher.capture(LFlow(nodeId, hashIn, hashOut, value))
+  }
+
+  override def addInput(nodeId: String, hashIn: String, tag: String): Unit = {
+    addInput(nodeId, hashIn, tag, null)
+  }
+
+  override def addInput(nodeId: String, hashIn: String, tag: String, value: String): Unit = {
+
+  }
+
+  override def addOutput(nodeId: String, hashOut: String, tag: String): Unit = {
+    addOutput(nodeId, hashOut, tag, null)
+  }
+
+  override def addOutput(nodeId: String, hashOut: String, tag: String, value: String): Unit = {
+
+  }
+
+  override def reset(tag: String): Unit = {
+
   }
 }

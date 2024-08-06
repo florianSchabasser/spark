@@ -15,23 +15,6 @@
  * limitations under the License.
  */
 
-package org.apache.spark.lineage
+package org.apache.spark.lineage.dto
 
-import java.util
-
-import com.typesafe.config.Config
-import pureconfig.ConfigSource
-import pureconfig.generic.auto.exportReader
-
-
-case class ProducerConfig(producer: Config, topic: String)
-
-object ProducerConfig extends ClientConfig {
-  def getConfig(resource: String): (util.Map[String, AnyRef], String) = {
-    val source =
-      ConfigSource.resources(resource).loadOrThrow[ProducerConfig]
-    val config = source.producer.asJavaMap
-    val topic = source.topic
-    (config, topic)
-  }
-}
+case class LFlow(nodeId: String, hashIn: String, hashOut: String, value: Any) {}

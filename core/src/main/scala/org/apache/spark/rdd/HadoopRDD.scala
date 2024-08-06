@@ -19,7 +19,7 @@ package org.apache.spark.rdd
 
 import java.io.{FileNotFoundException, IOException}
 import java.text.SimpleDateFormat
-import java.util.{Date, Locale, UUID}
+import java.util.{Date, Locale}
 
 import scala.reflect.ClassTag
 
@@ -139,10 +139,6 @@ class HadoopRDD[K, V](
   private val ignoreMissingFiles = sparkContext.conf.get(IGNORE_MISSING_FILES)
 
   private val ignoreEmptySplits = sparkContext.conf.get(HADOOP_RDD_IGNORE_EMPTY_SPLITS)
-
-  private var partitionOffset: Integer = 0
-
-  override def getPartitionOffset: Integer = partitionOffset
 
   // Returns a JobConf that will be used on executors to obtain input splits for Hadoop reads.
   protected def getJobConf(): JobConf = {
@@ -316,8 +312,7 @@ class HadoopRDD[K, V](
 
       override def getNext(): (K, V) = {
         recordId += 1
-        partitionOffset = splitId + recordId
-        context.setIdentifier(UUID.randomUUID().toString)
+        context.setIdentifier(s"${splitId}#${recordId}")
         try {
           finished = !reader.next(key, value)
         } catch {
@@ -368,7 +363,7 @@ class HadoopRDD[K, V](
         }
       }
     }
-    new InterruptibleIterator[(K, V)](context, iter.map(v => lineage(v, context)))
+    new InterruptibleIterator[(K, V)](context, iter)
   }
 
   /** Maps over a partition, providing the InputSplit that was used as the base of the partition. */
@@ -451,7 +446,7 @@ private[spark] object HadoopRDD extends Logging {
     override def compute(split: Partition, context: TaskContext): Iterator[U] = {
       val partition = split.asInstanceOf[HadoopPartition]
       val inputSplit = partition.inputSplit.value
-      f(inputSplit, firstParent[T].iterator(split, context)).map(v => lineage(v, context))
+      f(inputSplit, firstParent[T].iterator(split, context))
     }
   }
 

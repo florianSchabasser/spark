@@ -94,8 +94,7 @@ private[spark] class TaskContextImpl(
 
   // Lineage: Used to keep track of the assigned identifier within a stage
   @transient private var currentIdentifier: String = ""
-
-  @transient private var partitionOffset: Integer = 0;
+  @transient private var writeIdentifier: String = _
 
   override def addTaskCompletionListener(listener: TaskCompletionListener): this.type = {
     val needToCallListener = synchronized {
@@ -283,6 +282,14 @@ private[spark] class TaskContextImpl(
 
   private[spark] override def getCurrentIdentifier: String = {
     this.currentIdentifier;
+  }
+
+  override private[spark] def getWriteIdentifier: String = {
+    writeIdentifier
+  }
+
+  override private[spark] def setWriteIdentifier(id: String): Unit = {
+    this.writeIdentifier = id
   }
 
   @GuardedBy("this")

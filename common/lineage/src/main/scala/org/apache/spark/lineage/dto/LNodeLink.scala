@@ -15,20 +15,6 @@
  * limitations under the License.
  */
 
-package org.apache.spark.lineage
+package org.apache.spark.lineage.dto
 
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
-
-trait ProducerUtils[T] {
-
-  def produce[K, V](
-                     producer: KafkaProducer[K, V],
-                     topic: String,
-                     key: K,
-                     value: V
-                   ): Unit = {
-    val record = new ProducerRecord(topic, key, value)
-    producer.send(record)
-  }
-
-}
+case class LNodeLink(srcNodeId: String, destNodeId: String) {}

@@ -15,11 +15,6 @@
  * limitations under the License.
  */
 
-package org.apache.spark.lineage
+package org.apache.spark.lineage.dto
 
-import java.util
-
-case class LineageTracking(id: String, name: String, hashIn: String, hashOut: String,
-                           additionalInformation: util.Map[String, String]) {
-}
-
+case class LNodeRegistration(nodeId: String, name: String, description: String) {}

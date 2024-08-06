@@ -1,23 +1,15 @@
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import explode, split, col
+# Input and output file paths
+input_file = "hdfs://localhost:9000/user/root/input/words_small.txt"
+output_file = "hdfs://localhost:9000/user/root/output/wordCount.csv"
 
-# Initialize SparkSession
-spark = SparkSession.builder \
-    .appName("PySpark Word Count") \
-    .getOrCreate()
+# Read the input text file into an RDD
+text_rdd = sc.textFile(input_file)
 
-# Read the input text file into a DataFrame
-input_file = "path/to/your/input_file.txt"
-df = spark.read.text(input_file)
+# Split each line into words and flatten the result
+words_rdd = text_rdd.flatMap(lambda line: line.split())
 
-# Split each line into words and explode into individual rows
-words_df = df.select(explode(split(col("value"), "\\s+")).alias("word"))
+# Count occurrences of each word
+word_count_rdd = words_rdd.map(lambda word: (word, 1)).reduceByKey(lambda a, b: a + b)
 
-# Group by words and count the occurrences
-word_count_df = words_df.groupBy("word").count()
-
-# Show the results
-word_count_df.show(truncate=False)
-
-# Stop the SparkSession
-spark.stop()
+# Save the result to the output file
+word_count_rdd.saveAsTextFile(output_file)
