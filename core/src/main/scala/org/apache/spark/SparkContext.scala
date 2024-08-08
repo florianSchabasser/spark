@@ -30,7 +30,7 @@ import scala.collection.concurrent.{Map => ScalaConcurrentMap}
 import scala.collection.immutable
 import scala.collection.mutable.HashMap
 import scala.language.implicitConversions
-import scala.reflect.{classTag, ClassTag}
+import scala.reflect._
 import scala.util.control.NonFatal
 
 import com.google.common.collect.MapMaker
@@ -1257,8 +1257,6 @@ class SparkContext(config: SparkConf) extends Logging {
     // A Hadoop configuration can be about 10 KiB, which is pretty big, so broadcast it.
     val confBroadcast = broadcast(new SerializableConfiguration(hadoopConfiguration))
     val setInputPathsFunc = (jobConf: JobConf) => FileInputFormat.setInputPaths(jobConf, path)
-    this.setNextName("Read")
-    this.setNextDescription(s"Read from ${path}")
     new HadoopRDD(
       this,
       confBroadcast,
@@ -2720,30 +2718,6 @@ class SparkContext(config: SparkConf) extends Logging {
 
   /** Register a new RDD, returning its RDD ID */
   private[spark] def newRddId(): Int = nextRddId.getAndIncrement()
-
-  private var _nextDescription: String = _
-  private[spark] def getDescription: String = {
-    val description = _nextDescription
-    _nextDescription = null
-    description
-  }
-  private[spark] def setNextDescription(description: String): Unit = {
-    _nextDescription = description
-  }
-
-  private var _nextName: String = _
-  private[spark] def hasName: Boolean = {
-    _nextName != null
-  }
-  private[spark] def getName: String = {
-    val name = _nextName
-    _nextName = null
-    name
-  }
-  private[spark] def setNextName(name: String): Unit = {
-    _nextName = name
-  }
-
 
   /**
    * Registers listeners specified in spark.extraListeners, then starts the listener bus.
