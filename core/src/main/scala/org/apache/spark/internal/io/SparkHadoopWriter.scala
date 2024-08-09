@@ -134,13 +134,13 @@ object SparkHadoopWriter extends Logging {
     try {
       val ret = Utils.tryWithSafeFinallyAndFailureCallbacks {
         while (iterator.hasNext) {
-          context.setWriteIdentifier(s"${sparkPartitionId}#${recordsWritten}")
           val pair = iterator.next()
           config.write(pair)
 
           // Update bytes written metric every few records
           maybeUpdateOutputMetrics(outputMetrics, callback, recordsWritten)
           recordsWritten += 1
+          context.increaseRecordsWritten()
         }
 
         config.closeWriter(taskContext)

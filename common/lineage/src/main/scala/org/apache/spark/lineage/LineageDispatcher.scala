@@ -26,7 +26,7 @@ import org.apache.kafka.common.serialization.StringSerializer
 import org.apache.spark.lineage.config.ProducerConfig.getConfig
 import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 
-object LineageDispatcher {
+class LineageDispatcher {
 
   private val config = getConfig("./kafka.conf")
   private val producer = new KafkaProducer(config, new StringSerializer(), new StringSerializer())
@@ -48,8 +48,8 @@ object LineageDispatcher {
     producer.send(record)
   }
 
-  def capture(flow: LFlow): Unit = {
-    val record = new ProducerRecord[String, String]("lineage-flow", "lineage-flow",
+  def capture(key: String, flow: LFlow): Unit = {
+    val record = new ProducerRecord[String, String]("lineage-flow", key,
       jsonMapper.writeValueAsString(flow))
     producer.send(record)
   }

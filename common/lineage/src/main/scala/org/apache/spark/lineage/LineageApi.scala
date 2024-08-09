@@ -20,45 +20,27 @@ package org.apache.spark.lineage
 import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 
-object LineageApi extends ILineageApi with Logging {
+class LineageApi(clientId: String) extends ILineageApi with Logging {
+
+  private[spark] val dispatcher = new LineageDispatcher()
 
   override def register(nodeId: String, name: String, description: String): Unit = {
-    LineageDispatcher.register(LNodeRegistration(nodeId, name, description))
-  }
-
-  override def commit(nodeId: String): Unit = {
-
+    dispatcher.register(LNodeRegistration(nodeId, name, description))
   }
 
   override def flowLink(srcNodeId: String, destNodeId: String): Unit = {
-    LineageDispatcher.link(LNodeLink(srcNodeId, destNodeId))
+    dispatcher.link(LNodeLink(srcNodeId, destNodeId))
   }
 
-  override def capture(nodeId: String, hashIn: String, hashOut: String): Unit = {
-    capture(nodeId, hashIn, hashOut, null)
+  override def capture(key: String, flowId: String, hashIn: String, hashOut: String,
+                       value: String = null): Unit = {
+    dispatcher.capture(key, LFlow(flowId, hashIn, hashOut, value))
   }
+}
 
-  override def capture(nodeId: String, hashIn: String, hashOut: String, value: String): Unit = {
-    LineageDispatcher.capture(LFlow(nodeId, hashIn, hashOut, value))
-  }
+object LineageApi {
 
-  override def addInput(nodeId: String, hashIn: String, tag: String): Unit = {
-    addInput(nodeId, hashIn, tag, null)
-  }
+  private val apiInstance: ILineageApi = new LineageApi("LineageApiCompanion")
 
-  override def addInput(nodeId: String, hashIn: String, tag: String, value: String): Unit = {
-
-  }
-
-  override def addOutput(nodeId: String, hashOut: String, tag: String): Unit = {
-    addOutput(nodeId, hashOut, tag, null)
-  }
-
-  override def addOutput(nodeId: String, hashOut: String, tag: String, value: String): Unit = {
-
-  }
-
-  override def reset(tag: String): Unit = {
-
-  }
+  def getInstance: ILineageApi = apiInstance
 }

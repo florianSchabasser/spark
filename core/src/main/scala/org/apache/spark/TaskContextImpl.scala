@@ -19,12 +19,11 @@ package org.apache.spark
 
 import java.util.{Properties, Stack}
 import javax.annotation.concurrent.GuardedBy
-
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
-
 import org.apache.spark.executor.TaskMetrics
-import org.apache.spark.internal.{config, Logging}
+import org.apache.spark.internal.{Logging, config}
+import org.apache.spark.lineage.{ILineageApi, LineageApi}
 import org.apache.spark.memory.TaskMemoryManager
 import org.apache.spark.metrics.MetricsSystem
 import org.apache.spark.metrics.source.Source
@@ -71,6 +70,12 @@ private[spark] class TaskContextImpl(
   /** List of callback functions to execute when the task fails. */
   @transient private val onFailureCallbacks = new Stack[TaskFailureListener]
 
+  @transient private val lineageApi: ILineageApi = new LineageApi(taskAttemptId.toString)
+
+  @transient private var recordsWritten: Int = 0
+
+  @transient private var recordId: String = _
+
   /**
    * The thread currently executing task completion or failure listeners, if any.
    *
@@ -93,8 +98,8 @@ private[spark] class TaskContextImpl(
   @volatile private var _fetchFailedException: Option[FetchFailedException] = None
 
   // Lineage: Used to keep track of the assigned identifier within a stage
-  @transient private var currentIdentifier: String = ""
-  @transient private var writeIdentifier: String = _
+  @transient private var flowHash: String = ""
+  @transient private var fixedFlowHash: String = ""
 
   override def addTaskCompletionListener(listener: TaskCompletionListener): this.type = {
     val needToCallListener = synchronized {
@@ -276,21 +281,23 @@ private[spark] class TaskContextImpl(
     reasonIfKilled
   }
 
-  private[spark] override def setIdentifier(id: String): Unit = {
-    this.currentIdentifier = id;
+  private[spark] def lineage: ILineageApi = lineageApi
+
+  private[spark] override def setFlowHash(flowHash: String, fixed: Boolean = false): Unit = {
+    if (fixed) fixedFlowHash = id else flowHash = id
   }
 
-  private[spark] override def getCurrentIdentifier: String = {
-    this.currentIdentifier;
+  private[spark] override def getFlowHash(fixed: Boolean = false): String = {
+    if (fixed) fixedFlowHash else flowHash
   }
 
-  override private[spark] def getWriteIdentifier: String = {
-    writeIdentifier
-  }
+  private[spark] def getRecordsWritten: Int = recordsWritten
 
-  override private[spark] def setWriteIdentifier(id: String): Unit = {
-    this.writeIdentifier = id
-  }
+  private[spark] def increaseRecordsWritten(): Unit = recordsWritten += 1
+
+  private[spark] def setRecordId(recordId: String): Unit = this.recordId = recordId
+
+  private[spark] def getRecordId: String = this.recordId
 
   @GuardedBy("this")
   override def isCompleted(): Boolean = synchronized(completed)

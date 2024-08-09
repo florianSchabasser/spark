@@ -20,7 +20,6 @@ package org.apache.spark.rdd.lineage
 import scala.reflect._
 
 import org.apache.spark.{Partition, TaskContext}
-import org.apache.spark.lineage.LineageApi.capture
 import org.apache.spark.rdd.MapPartitionsRDD
 
 private[spark] class FlatMapPartitionsLRDD[U: ClassTag, T: ClassTag](
@@ -36,26 +35,39 @@ private[spark] class FlatMapPartitionsLRDD[U: ClassTag, T: ClassTag](
   override def tTag: ClassTag[U] = classTag[U]
   override def lineageContext: LineageContext = prev.lineageContext
 
-  /** Fix the hashIn, since we fan out */
-  private var hashIn: String = _
-
   override def lineage(value: U, context: TaskContext): U = {
     val hashOut: String = generateHashOut(value)
+    context.setRecordId(FlatMapPartitionsLRDD.incrementNumberInString(context.getRecordId))
 
-    capture(globalId, hashIn, hashOut, extractValue(value))
-    context.setIdentifier(hashOut)
+    context.lineage.capture(context.partitionId().toString, s"${nodeId}#${context.getRecordId}",
+      context.getFlowHash(fixed = true), hashOut, extractValue(value))
+    context.setFlowHash(hashOut)
 
     value
   }
 
   override def compute(split: Partition, context: TaskContext): Iterator[U] = {
-    linkNodes()
+    linkNodes(context)
     f(context, split.index, firstParent[T].iterator(split, context).map(v => setHash(v, context)))
       .map(v => lineage(v, context))
   }
 
   private def setHash(value: T, context: TaskContext): T = {
-    hashIn = context.getCurrentIdentifier
+    context.setFlowHash(context.getFlowHash(), fixed = true)
     value
+  }
+}
+
+object FlatMapPartitionsLRDD {
+  private def incrementNumberInString(input: String): String = {
+    val pattern = """(.*\()(\d+)(\))""".r
+
+    input match {
+      case pattern(prefix, number, suffix) =>
+        val incrementedNumber = number.toInt + 1
+        s"$prefix$incrementedNumber$suffix"
+      case _ =>
+        throw new IllegalArgumentException("Invalid RecordId")
+    }
   }
 }

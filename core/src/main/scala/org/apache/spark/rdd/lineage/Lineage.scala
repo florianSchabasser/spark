@@ -24,8 +24,7 @@ import org.apache.hadoop.io.compress.CompressionCodec
 import org.apache.hadoop.mapred.TextOutputFormat
 
 import org.apache.spark.TaskContext
-import org.apache.spark.lineage.ILineageGetter
-import org.apache.spark.lineage.LineageApi.{capture, flowLink, register}
+import org.apache.spark.lineage.{ILineageGetter, LineageApi}
 import org.apache.spark.rdd.RDD
 
 trait Lineage[T] extends RDD[T] {
@@ -34,7 +33,7 @@ trait Lineage[T] extends RDD[T] {
   @transient def lineageContext: LineageContext
 
   /** Globally unique ID over multiple SparkContext */
-  val globalId: String = s"${sc.applicationId}#${id}"
+  val nodeId: String = s"${sc.applicationId}#${id}"
   /** Determine whether the value should be transferred with the lineage or not */
   private val transferValue: String = sc.getConf.get("spark.rdd.intermediateResults")
   private[spark] var generateHashOut: T => String = LineageHashUtil.getUUIDHashOut
@@ -42,20 +41,24 @@ trait Lineage[T] extends RDD[T] {
   protected var term: String = _
   protected var description: String = _
 
-  register(globalId, term, description)
+  LineageApi.getInstance.register(nodeId, term, description)
 
   def lineage(value: T, context: TaskContext): T = {
     val hashOut: String = generateHashOut(value)
 
-    capture(globalId, context.getCurrentIdentifier, hashOut, extractValue(value))
-    context.setIdentifier(hashOut)
+    // Use partitionId as message key, to process partitions in parallel on backend side
+    // but sequential within a task
+    // Retry will write to the same kafka partition
+    context.lineage.capture(context.partitionId().toString, s"${nodeId}#${context.getRecordId}",
+      context.getFlowHash, hashOut, extractValue(value))
+    context.setFlowHash(hashOut)
 
     value
   }
 
   def withDescription(description: String): Lineage[T] = {
     this.description = description
-    register(globalId, term, description)
+    LineageApi.getInstance.register(nodeId, term, description)
     this
   }
 
@@ -63,8 +66,8 @@ trait Lineage[T] extends RDD[T] {
   override protected[spark] def firstParent[U: ClassTag]: Lineage[U] =
     dependencies.head.rdd.asInstanceOf[Lineage[U]]
 
-  protected def linkNodes(): Unit = {
-    flowLink(firstParent.globalId, globalId)
+  protected def linkNodes(context: TaskContext): Unit = {
+    context.lineage.flowLink(firstParent.nodeId, nodeId)
   }
 
   protected def extractValue(value: T): String = {

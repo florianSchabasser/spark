@@ -20,7 +20,6 @@ package org.apache.spark.rdd.lineage
 import scala.reflect._
 
 import org.apache.spark._
-import org.apache.spark.lineage.LineageApi.{capture, flowLink}
 import org.apache.spark.rdd.ShuffledRDD
 
 private[spark] class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
@@ -33,19 +32,21 @@ private[spark] class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
   override def tTag: ClassTag[(K, C)] = classTag[(K, C)]
   override def lineageContext: LineageContext = previous.lineageContext
 
-  private val prevGlobalId: String = previous.globalId
+  private val prevGlobalId: String = previous.nodeId
 
   override def lineage(value: (K, C), context: TaskContext): (K, C) = {
     val hashOut: String = generateHashOut(value)
+    context.setRecordId(value._1.toString)
 
-    capture(globalId, s"${prevGlobalId}#${value._1}", hashOut, extractValue(value))
-    context.setIdentifier(hashOut)
+    context.lineage.capture(context.partitionId().toString, s"${nodeId}#${context.getRecordId}",
+      s"${prevGlobalId}#${value._1}", hashOut, extractValue(value))
+    context.setFlowHash(hashOut)
 
     value
   }
 
   override def compute(split: Partition, context: TaskContext): Iterator[(K, C)] = {
-    flowLink(prevGlobalId, globalId)
+    context.lineage.flowLink(prevGlobalId, nodeId)
     super.compute(split, context).map(v => lineage(v, context))
   }
 

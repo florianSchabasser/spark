@@ -26,6 +26,6 @@ object LineageHashUtil {
   }
 
   def getKeyHashOut[K, V](rdd: Lineage[(K, V)]): ((K, V)) => String = {
-    (e: (K, V)) => s"${rdd.globalId}#${e._1}"
+    (e: (K, V)) => s"${rdd.nodeId}#${e._1}"
   }
 }

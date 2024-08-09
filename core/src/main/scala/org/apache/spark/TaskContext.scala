@@ -22,6 +22,7 @@ import java.util.Properties
 
 import org.apache.spark.annotation.{DeveloperApi, Evolving, Since}
 import org.apache.spark.executor.TaskMetrics
+import org.apache.spark.lineage.ILineageApi
 import org.apache.spark.memory.TaskMemoryManager
 import org.apache.spark.metrics.source.Source
 import org.apache.spark.resource.ResourceInformation
@@ -301,11 +302,17 @@ abstract class TaskContext extends Serializable {
   /** Gets local properties set upstream in the driver. */
   private[spark] def getLocalProperties: Properties
 
-  private[spark] def setIdentifier(id: String): Unit
+  private[spark] def lineage: ILineageApi
 
-  private[spark] def getCurrentIdentifier: String
+  private[spark] def setFlowHash(flowHash: String, fixed: Boolean = false): Unit
 
-  private[spark] def getWriteIdentifier: String
+  private[spark] def getFlowHash(fixed: Boolean = false): String
 
-  private[spark] def setWriteIdentifier(id: String): Unit
+  private[spark] def getRecordsWritten: Int
+
+  private[spark] def increaseRecordsWritten(): Unit
+
+  private[spark] def setRecordId(recordId: String): Unit
+
+  private[spark] def getRecordId: String
 }

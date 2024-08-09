@@ -246,7 +246,7 @@ class HadoopRDD[K, V](
       private val split = theSplit.asInstanceOf[HadoopPartition]
       logInfo("Input split: " + split.inputSplit)
       private val splitId: Int = split.index;
-      private var recordId: Int = 0;
+      private var recordsRead: Int = 0
       private val jobConf = getJobConf()
 
       private val inputMetrics = context.taskMetrics().inputMetrics
@@ -311,8 +311,9 @@ class HadoopRDD[K, V](
       private val value: V = if (reader == null) null.asInstanceOf[V] else reader.createValue()
 
       override def getNext(): (K, V) = {
-        recordId += 1
-        context.setIdentifier(s"${splitId}#${recordId}")
+        context.setFlowHash(s"read#${splitId}#${recordsRead}")
+        context.setRecordId(s"${splitId}${recordsRead}")
+        recordsRead += 1
         try {
           finished = !reader.next(key, value)
         } catch {

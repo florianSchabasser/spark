@@ -18,14 +18,13 @@
 package org.apache.spark
 
 import java.util.{Properties, Timer, TimerTask}
-
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-import scala.util.{Failure, Success => ScalaSuccess, Try}
-
+import scala.util.{Failure, Try, Success => ScalaSuccess}
 import org.apache.spark.annotation.{Experimental, Since}
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.internal.Logging
+import org.apache.spark.lineage.ILineageApi
 import org.apache.spark.memory.TaskMemoryManager
 import org.apache.spark.metrics.source.Source
 import org.apache.spark.resource.ResourceInformation
@@ -269,14 +268,22 @@ class BarrierTaskContext private[spark] (
 
   override private[spark] def getLocalProperties: Properties = taskContext.getLocalProperties
 
-  override private[spark] def setIdentifier(id: String): Unit = taskContext.setIdentifier(id)
+  override private[spark] def lineage: ILineageApi = taskContext.lineage
 
-  override private[spark] def getCurrentIdentifier: String = taskContext.getCurrentIdentifier
+  override private[spark] def setFlowHash(flowHash: String, fixed: Boolean = false): Unit =
+    taskContext.setFlowHash(flowHash, fixed = fixed)
 
-  override private[spark] def getWriteIdentifier: String = taskContext.getWriteIdentifier
+  override private[spark] def getFlowHash(fixed: Boolean = false): String =
+    taskContext.getFlowHash(fixed = fixed)
 
-  override private[spark] def setWriteIdentifier(id: String): Unit =
-    taskContext.setWriteIdentifier(id)
+  override private[spark] def getRecordsWritten: Int = taskContext.getRecordsWritten
+
+  override private[spark] def increaseRecordsWritten(): Unit = taskContext.increaseRecordsWritten()
+
+  override private[spark] def setRecordId(recordId: String): Unit =
+    taskContext.setRecordId(recordId)
+
+  override private[spark] def getRecordId: String = taskContext.getRecordId
 }
 
 @Experimental

@@ -36,7 +36,7 @@ private[spark] class MapPartitionsLRDD[U: ClassTag, T: ClassTag](
   override def lineageContext: LineageContext = prev.lineageContext
 
   override def compute(split: Partition, context: TaskContext): Iterator[U] = {
-    linkNodes()
+    linkNodes(context)
     super.compute(split, context).map(v => lineage(v, context))
   }
 }
