@@ -302,6 +302,8 @@ abstract class TaskContext extends Serializable {
   /** Gets local properties set upstream in the driver. */
   private[spark] def getLocalProperties: Properties
 
+  private[spark] def withLineage(): Unit
+
   private[spark] def lineage: ILineageApi
 
   private[spark] def setFlowHash(flowHash: String, fixed: Boolean = false): Unit

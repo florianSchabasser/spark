@@ -32,7 +32,7 @@ echo $JAVA_HOME
 echo $SPARK_HOME
 
 exec "${SPARK_HOME}"/bin/spark-class org.apache.spark.deploy.SparkSubmit "$@" \
---master local[1] \
+--master local[3] \
 --conf "spark.rdd.intermediateResults=true" \
 --conf "spark.driver.extraClassPath=./"
 

@@ -50,7 +50,7 @@ trait Lineage[T] extends RDD[T] {
     // but sequential within a task
     // Retry will write to the same kafka partition
     context.lineage.capture(context.partitionId().toString, s"${nodeId}#${context.getRecordId}",
-      context.getFlowHash, hashOut, extractValue(value))
+      context.getFlowHash(), hashOut, extractValue(value))
     context.setFlowHash(hashOut)
 
     value

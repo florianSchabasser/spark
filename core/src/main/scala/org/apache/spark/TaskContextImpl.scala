@@ -19,10 +19,12 @@ package org.apache.spark
 
 import java.util.{Properties, Stack}
 import javax.annotation.concurrent.GuardedBy
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
+
 import org.apache.spark.executor.TaskMetrics
-import org.apache.spark.internal.{Logging, config}
+import org.apache.spark.internal.{config, Logging}
 import org.apache.spark.lineage.{ILineageApi, LineageApi}
 import org.apache.spark.memory.TaskMemoryManager
 import org.apache.spark.metrics.MetricsSystem
@@ -70,7 +72,7 @@ private[spark] class TaskContextImpl(
   /** List of callback functions to execute when the task fails. */
   @transient private val onFailureCallbacks = new Stack[TaskFailureListener]
 
-  @transient private val lineageApi: ILineageApi = new LineageApi(taskAttemptId.toString)
+  @transient private var lineageApi: ILineageApi = null
 
   @transient private var recordsWritten: Int = 0
 
@@ -281,10 +283,22 @@ private[spark] class TaskContextImpl(
     reasonIfKilled
   }
 
+  override private[spark] def withLineage(): Unit = {
+    this.lineageApi = new LineageApi(taskAttemptId.toString)
+    this.addTaskFailureListener(new TaskFailureListener {
+      override def onTaskFailure(context: TaskContext, error: Throwable): Unit =
+        context.lineage.asInstanceOf[LineageApi].close()
+    })
+    this.addTaskCompletionListener(new TaskCompletionListener {
+      override def onTaskCompletion(context: TaskContext): Unit = {
+        context.lineage.asInstanceOf[LineageApi].close()    }
+    })
+  }
+
   private[spark] def lineage: ILineageApi = lineageApi
 
   private[spark] override def setFlowHash(flowHash: String, fixed: Boolean = false): Unit = {
-    if (fixed) fixedFlowHash = id else flowHash = id
+    if (fixed) this.fixedFlowHash = flowHash else this.flowHash = flowHash
   }
 
   private[spark] override def getFlowHash(fixed: Boolean = false): String = {

@@ -22,7 +22,7 @@ import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 
 class LineageApi(clientId: String) extends ILineageApi with Logging {
 
-  private[spark] val dispatcher = new LineageDispatcher()
+  private[spark] val dispatcher = new LineageDispatcher(clientId)
 
   override def register(nodeId: String, name: String, description: String): Unit = {
     dispatcher.register(LNodeRegistration(nodeId, name, description))
@@ -36,6 +36,8 @@ class LineageApi(clientId: String) extends ILineageApi with Logging {
                        value: String = null): Unit = {
     dispatcher.capture(key, LFlow(flowId, hashIn, hashOut, value))
   }
+
+  private[spark] def close(): Unit = dispatcher.close()
 }
 
 object LineageApi {

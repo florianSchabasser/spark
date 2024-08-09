@@ -18,9 +18,11 @@
 package org.apache.spark
 
 import java.util.{Properties, Timer, TimerTask}
+
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-import scala.util.{Failure, Try, Success => ScalaSuccess}
+import scala.util.{Failure, Success => ScalaSuccess, Try}
+
 import org.apache.spark.annotation.{Experimental, Since}
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.internal.Logging
@@ -267,6 +269,8 @@ class BarrierTaskContext private[spark] (
   }
 
   override private[spark] def getLocalProperties: Properties = taskContext.getLocalProperties
+
+  override private[spark] def withLineage(): Unit = taskContext.withLineage()
 
   override private[spark] def lineage: ILineageApi = taskContext.lineage
 

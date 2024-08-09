@@ -67,7 +67,7 @@ object FlatMapPartitionsLRDD {
         val incrementedNumber = number.toInt + 1
         s"$prefix$incrementedNumber$suffix"
       case _ =>
-        throw new IllegalArgumentException("Invalid RecordId")
+        s"${input}(0)"
     }
   }
 }

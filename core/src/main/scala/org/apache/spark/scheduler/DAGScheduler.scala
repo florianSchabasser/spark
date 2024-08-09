@@ -1613,7 +1613,7 @@ private[spark] class DAGScheduler(
             new ShuffleMapTask(stage.id, stage.latestInfo.attemptNumber, taskBinary,
               part, stage.numPartitions, locs, artifacts, properties, serializedTaskMetrics,
               Option(jobId), Option(sc.applicationId), sc.applicationAttemptId,
-              stage.rdd.isBarrier())
+              stage.rdd.isBarrier(), sc.withLineage)
           }
 
         case stage: ResultStage =>
@@ -1624,7 +1624,7 @@ private[spark] class DAGScheduler(
             new ResultTask(stage.id, stage.latestInfo.attemptNumber,
               taskBinary, part, stage.numPartitions, locs, id, artifacts, properties,
               serializedTaskMetrics, Option(jobId), Option(sc.applicationId),
-              sc.applicationAttemptId, stage.rdd.isBarrier())
+              sc.applicationAttemptId, stage.rdd.isBarrier(), sc.withLineage)
           }
       }
     } catch {
