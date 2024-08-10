@@ -17,4 +17,5 @@
 
 package org.apache.spark.lineage.dto
 
-case class LFlow(flowId: String, hashIn: String, hashOut: String, value: Any) {}
+case class LFlow(flowId: String, hashIn: String, hashOut: String,
+                 name: String, description: String, value: Any) {}

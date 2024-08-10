@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
+import org.apache.kafka.common.header.Header
+import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.serialization.StringSerializer
 
 import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
@@ -37,20 +39,24 @@ class LineageDispatcher(clientId: String) {
     .addModule(new JavaTimeModule())
     .build()
 
-  def register(nodeRegistration: LNodeRegistration): Unit = {
-    val record = new ProducerRecord[String, String]("lineage-node-registration",
-      "lineage-node-registration", jsonMapper.writeValueAsString(nodeRegistration))
+  def register(messageKey: String, nodeRegistration: LNodeRegistration): Unit = {
+    val headers: Header = new RecordHeader("type", "LineageNodeRegistration".getBytes("UTF-8"))
+    val record = new ProducerRecord[String, String]("lineage-node", null, messageKey,
+      jsonMapper.writeValueAsString(nodeRegistration),
+      java.util.Collections.singletonList(headers))
     producer.send(record)
   }
 
-  def link(nodeLink: LNodeLink): Unit = {
-    val record = new ProducerRecord[String, String]("lineage-node-link", "lineage-node-link",
-      jsonMapper.writeValueAsString(nodeLink))
+  def link(messageKey: String, nodeLink: LNodeLink): Unit = {
+    val headers: Header = new RecordHeader("type", "LineageNodeLink".getBytes("UTF-8"))
+    val record = new ProducerRecord[String, String]("lineage-node", null, messageKey,
+      jsonMapper.writeValueAsString(nodeLink),
+      java.util.Collections.singletonList(headers))
     producer.send(record)
   }
 
-  def capture(key: String, flow: LFlow): Unit = {
-    val record = new ProducerRecord[String, String]("lineage-flow", key,
+  def capture(messageKey: String, flow: LFlow): Unit = {
+    val record = new ProducerRecord[String, String]("lineage-flow", messageKey,
       jsonMapper.writeValueAsString(flow))
     producer.send(record)
   }

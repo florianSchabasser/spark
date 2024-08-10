@@ -32,13 +32,15 @@ private[spark] class PersistLRDD[U: ClassTag, T: ClassTag](
   extends MapPartitionsRDD[U, T](prev, f, preservesPartitioning, isFromBarrier, isOrderSensitive)
       with Lineage[U] {
 
+  prevNodeId = prev.nodeId
+
   override def tTag: ClassTag[U] = classTag[U]
   override def lineageContext: LineageContext = prev.lineageContext
 
   override def lineage(value: U, context: TaskContext): U = {
     val hashOut: String = s"write#${context.partitionId()}#${context.getRecordsWritten}"
 
-    context.lineage.capture(context.partitionId().toString, s"${nodeId}#${context.getRecordId}",
+    context.lineage.capture(s"${nodeId}#${context.getRecordId}",
       context.getFlowHash(), hashOut, extractValue(value))
     context.setFlowHash(hashOut)
 
@@ -46,7 +48,6 @@ private[spark] class PersistLRDD[U: ClassTag, T: ClassTag](
   }
 
   override def compute(split: Partition, context: TaskContext): Iterator[U] = {
-    linkNodes(context)
     super.compute(split, context).map(v => lineage(v, context))
   }
 }

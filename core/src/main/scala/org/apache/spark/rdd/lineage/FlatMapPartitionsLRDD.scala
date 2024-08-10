@@ -32,6 +32,8 @@ private[spark] class FlatMapPartitionsLRDD[U: ClassTag, T: ClassTag](
   extends MapPartitionsRDD[U, T](prev, f, preservesPartitioning, isFromBarrier, isOrderSensitive)
     with Lineage[U] {
 
+  prevNodeId = prev.nodeId
+
   override def tTag: ClassTag[U] = classTag[U]
   override def lineageContext: LineageContext = prev.lineageContext
 
@@ -39,7 +41,7 @@ private[spark] class FlatMapPartitionsLRDD[U: ClassTag, T: ClassTag](
     val hashOut: String = generateHashOut(value)
     context.setRecordId(FlatMapPartitionsLRDD.incrementNumberInString(context.getRecordId))
 
-    context.lineage.capture(context.partitionId().toString, s"${nodeId}#${context.getRecordId}",
+    context.lineage.capture(s"${nodeId}#${context.getRecordId}",
       context.getFlowHash(fixed = true), hashOut, extractValue(value))
     context.setFlowHash(hashOut)
 
@@ -47,7 +49,6 @@ private[spark] class FlatMapPartitionsLRDD[U: ClassTag, T: ClassTag](
   }
 
   override def compute(split: Partition, context: TaskContext): Iterator[U] = {
-    linkNodes(context)
     f(context, split.index, firstParent[T].iterator(split, context).map(v => setHash(v, context)))
       .map(v => lineage(v, context))
   }

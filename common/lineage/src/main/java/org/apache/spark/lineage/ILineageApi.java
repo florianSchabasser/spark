@@ -7,5 +7,5 @@ public interface ILineageApi {
     void flowLink(String srcNodeId, String destNodeId);
 
     // Capture API
-    void capture(String key, String flowId, String hashIn, String hashOut, String value);
+    void capture(String flowId, String hashIn, String hashOut, String value);
 }

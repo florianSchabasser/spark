@@ -38,10 +38,12 @@ trait Lineage[T] extends RDD[T] {
   private val transferValue: String = sc.getConf.get("spark.rdd.intermediateResults")
   private[spark] var generateHashOut: T => String = LineageHashUtil.getUUIDHashOut
 
-  protected var term: String = _
-  protected var description: String = _
+  var term: String = _
+  var description: String = _
+  var prevNodeId: String = _
 
   LineageApi.getInstance.register(nodeId, term, description)
+  LineageApi.getInstance.flowLink(prevNodeId, nodeId)
 
   def lineage(value: T, context: TaskContext): T = {
     val hashOut: String = generateHashOut(value)
@@ -49,7 +51,7 @@ trait Lineage[T] extends RDD[T] {
     // Use partitionId as message key, to process partitions in parallel on backend side
     // but sequential within a task
     // Retry will write to the same kafka partition
-    context.lineage.capture(context.partitionId().toString, s"${nodeId}#${context.getRecordId}",
+    context.lineage.capture(s"${nodeId}#${context.getRecordId}",
       context.getFlowHash(), hashOut, extractValue(value))
     context.setFlowHash(hashOut)
 
@@ -65,10 +67,6 @@ trait Lineage[T] extends RDD[T] {
   /** Returns the first parent RDD */
   override protected[spark] def firstParent[U: ClassTag]: Lineage[U] =
     dependencies.head.rdd.asInstanceOf[Lineage[U]]
-
-  protected def linkNodes(context: TaskContext): Unit = {
-    context.lineage.flowLink(firstParent.nodeId, nodeId)
-  }
 
   protected def extractValue(value: T): String = {
     if (transferValue != null && transferValue.toBoolean) {

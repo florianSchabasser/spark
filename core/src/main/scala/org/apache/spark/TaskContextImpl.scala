@@ -17,14 +17,12 @@
 
 package org.apache.spark
 
-import java.util.{Properties, Stack}
+import java.util.{Properties, Stack, UUID}
 import javax.annotation.concurrent.GuardedBy
-
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
-
 import org.apache.spark.executor.TaskMetrics
-import org.apache.spark.internal.{config, Logging}
+import org.apache.spark.internal.{Logging, config}
 import org.apache.spark.lineage.{ILineageApi, LineageApi}
 import org.apache.spark.memory.TaskMemoryManager
 import org.apache.spark.metrics.MetricsSystem
@@ -284,7 +282,9 @@ private[spark] class TaskContextImpl(
   }
 
   override private[spark] def withLineage(): Unit = {
-    this.lineageApi = new LineageApi(taskAttemptId.toString)
+    // MessageKey = partitionId -> the messages of one task should be executed in seq
+    // order to handle retries
+    this.lineageApi = new LineageApi(UUID.randomUUID().toString, partitionId.toString)
     this.addTaskFailureListener(new TaskFailureListener {
       override def onTaskFailure(context: TaskContext, error: Throwable): Unit =
         context.lineage.asInstanceOf[LineageApi].close()

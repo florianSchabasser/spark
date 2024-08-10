@@ -23,30 +23,29 @@ import org.apache.spark._
 import org.apache.spark.rdd.ShuffledRDD
 
 private[spark] class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
-    @transient var previous: Lineage[_ <: Product2[K, V]],
+    prev: Lineage[_ <: Product2[K, V]],
     part: Partitioner,
     term: String = "ShuffledLRDD", description: String = null)
-  extends ShuffledRDD[K, V, C](previous, part)
+  extends ShuffledRDD[K, V, C](prev, part)
   with Lineage[(K, C)] {
 
-  override def tTag: ClassTag[(K, C)] = classTag[(K, C)]
-  override def lineageContext: LineageContext = previous.lineageContext
+  prevNodeId = prev.nodeId
 
-  private val prevGlobalId: String = previous.nodeId
+  override def tTag: ClassTag[(K, C)] = classTag[(K, C)]
+  override def lineageContext: LineageContext = prev.lineageContext
 
   override def lineage(value: (K, C), context: TaskContext): (K, C) = {
     val hashOut: String = generateHashOut(value)
     context.setRecordId(value._1.toString)
 
-    context.lineage.capture(context.partitionId().toString, s"${nodeId}#${context.getRecordId}",
-      s"${prevGlobalId}#${value._1}", hashOut, extractValue(value))
+    context.lineage.capture(s"${nodeId}#${context.getRecordId}",
+      s"${prevNodeId}#${value._1}", hashOut, extractValue(value))
     context.setFlowHash(hashOut)
 
     value
   }
 
   override def compute(split: Partition, context: TaskContext): Iterator[(K, C)] = {
-    context.lineage.flowLink(prevGlobalId, nodeId)
     super.compute(split, context).map(v => lineage(v, context))
   }
 
