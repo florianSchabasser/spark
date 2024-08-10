@@ -7,8 +7,8 @@ val output_file: String = "hdfs://localhost:9000/user/root/output/wordCount.csv"
 val lc = new LineageContext(sc)
 val data=lc.textFile(input_file)
 
-val splitdata = data.flatMap(l => l.split(" "))
-val mapdata = splitdata.map(w => (w,1))
+val splitdata = data.flatMap(l => l.split(" ")).withDescription("Split words by space")
+val mapdata = splitdata.map(w => (w,1)).withDescription("Create pairs (word,1)")
 val reducedata = mapdata.reduceByKey(_+_)
 
 reducedata.saveAsTextFile(output_file)

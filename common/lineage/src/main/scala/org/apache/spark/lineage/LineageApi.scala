@@ -44,8 +44,8 @@ class LineageApi(clientId: String, messageKey: String) extends ILineageApi with 
                        value: String = null): Unit = {
     val lNodeRegistration: LNodeRegistration = registrations
       .get(s"${flowId.split("#")(0)}#${flowId.split("#")(1)}").orNull
-    dispatcher.capture(messageKey, LFlow(flowId, hashIn, hashOut, value, lNodeRegistration.name,
-      lNodeRegistration.description))
+    dispatcher.capture(messageKey, LFlow(flowId, hashIn, hashOut, lNodeRegistration.name,
+      lNodeRegistration.description, value))
   }
 
   private[spark] def close(): Unit = dispatcher.close()

@@ -20,16 +20,21 @@ package org.apache.spark.rdd.lineage
 import scala.reflect._
 
 import org.apache.spark._
+import org.apache.spark.lineage.LineageApi
 import org.apache.spark.rdd.ShuffledRDD
 
 private[spark] class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
-    prev: Lineage[_ <: Product2[K, V]],
+    @transient prev: Lineage[_ <: Product2[K, V]],
     part: Partitioner,
     term: String = "ShuffledLRDD", description: String = null)
   extends ShuffledRDD[K, V, C](prev, part)
   with Lineage[(K, C)] {
 
-  prevNodeId = prev.nodeId
+  private val _prevNodeId = prev.nodeId
+  _term = term
+  _description = description
+  LineageApi.getInstance.register(nodeId, _term, _description)
+  LineageApi.getInstance.flowLink(_prevNodeId, nodeId)
 
   override def tTag: ClassTag[(K, C)] = classTag[(K, C)]
   override def lineageContext: LineageContext = prev.lineageContext
@@ -39,7 +44,7 @@ private[spark] class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
     context.setRecordId(value._1.toString)
 
     context.lineage.capture(s"${nodeId}#${context.getRecordId}",
-      s"${prevNodeId}#${value._1}", hashOut, extractValue(value))
+      s"${_prevNodeId}#${value._1}", hashOut, extractValue(value))
     context.setFlowHash(hashOut)
 
     value

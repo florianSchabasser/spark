@@ -20,6 +20,7 @@ package org.apache.spark.rdd.lineage
 import scala.reflect._
 
 import org.apache.spark.{Partition, TaskContext}
+import org.apache.spark.lineage.LineageApi
 import org.apache.spark.rdd.MapPartitionsRDD
 
 private[spark] class MapPartitionsLRDD[U: ClassTag, T: ClassTag](
@@ -32,7 +33,10 @@ private[spark] class MapPartitionsLRDD[U: ClassTag, T: ClassTag](
   extends MapPartitionsRDD[U, T](prev, f, preservesPartitioning, isFromBarrier, isOrderSensitive)
     with Lineage[U] {
 
-  prevNodeId = prev.nodeId
+  _term = term
+  _description = description
+  LineageApi.getInstance.register(nodeId, _term, _description)
+  LineageApi.getInstance.flowLink(prev.nodeId, nodeId)
 
   override def tTag: ClassTag[U] = classTag[U]
   override def lineageContext: LineageContext = prev.lineageContext

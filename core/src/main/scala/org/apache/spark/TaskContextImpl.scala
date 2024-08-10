@@ -19,10 +19,12 @@ package org.apache.spark
 
 import java.util.{Properties, Stack, UUID}
 import javax.annotation.concurrent.GuardedBy
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
+
 import org.apache.spark.executor.TaskMetrics
-import org.apache.spark.internal.{Logging, config}
+import org.apache.spark.internal.{config, Logging}
 import org.apache.spark.lineage.{ILineageApi, LineageApi}
 import org.apache.spark.memory.TaskMemoryManager
 import org.apache.spark.metrics.MetricsSystem

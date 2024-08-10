@@ -37,13 +37,8 @@ trait Lineage[T] extends RDD[T] {
   /** Determine whether the value should be transferred with the lineage or not */
   private val transferValue: String = sc.getConf.get("spark.rdd.intermediateResults")
   private[spark] var generateHashOut: T => String = LineageHashUtil.getUUIDHashOut
-
-  var term: String = _
-  var description: String = _
-  var prevNodeId: String = _
-
-  LineageApi.getInstance.register(nodeId, term, description)
-  LineageApi.getInstance.flowLink(prevNodeId, nodeId)
+  protected var _term: String = _
+  protected var _description: String = _
 
   def lineage(value: T, context: TaskContext): T = {
     val hashOut: String = generateHashOut(value)
@@ -59,8 +54,8 @@ trait Lineage[T] extends RDD[T] {
   }
 
   def withDescription(description: String): Lineage[T] = {
-    this.description = description
-    LineageApi.getInstance.register(nodeId, term, description)
+    _description = description
+    LineageApi.getInstance.register(nodeId, _term, _description)
     this
   }
 

@@ -23,6 +23,7 @@ import org.apache.hadoop.mapred._
 
 import org.apache.spark._
 import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.lineage.LineageApi
 import org.apache.spark.rdd.HadoopRDD
 import org.apache.spark.util.SerializableConfiguration
 
@@ -43,6 +44,10 @@ private[spark] class HadoopLRDD[K, V](@transient lc: LineageContext,
     keyClass,
     valueClass,
     minPartitions) with Lineage[(K, V)] {
+
+  _term = term
+  _description = description
+  LineageApi.getInstance.register(nodeId, _term, _description)
 
   override def tTag: ClassTag[(K, V)] = classTag[(K, V)]
   override def lineageContext: LineageContext = lc
