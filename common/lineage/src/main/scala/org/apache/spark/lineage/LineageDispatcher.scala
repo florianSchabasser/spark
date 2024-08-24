@@ -67,7 +67,7 @@ class LineageDispatcher(clientId: String) {
 
   private def getProducerConfig: Properties = {
     val props = new Properties()
-    val configFile = getClass.getResourceAsStream("/kafka.properties")
+    val configFile = getClass.getResourceAsStream("/conf/kafka.properties")
 
     props.load(configFile)
     props.put(ProducerConfig.CLIENT_ID_CONFIG, clientId)
