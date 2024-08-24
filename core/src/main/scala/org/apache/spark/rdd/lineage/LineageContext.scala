@@ -24,7 +24,7 @@ import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, TextInpu
 import org.apache.spark._
 import org.apache.spark.util.SerializableConfiguration
 
-class LineageContext(@transient val sparkContext: SparkContext) {
+class LineageContext(@transient val sparkContext: SparkContext) extends Serializable {
 
   sparkContext.activateLineage()
 

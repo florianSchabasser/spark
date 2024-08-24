@@ -74,7 +74,7 @@ private[spark] class TaskContextImpl(
 
   @transient private var lineageApi: ILineageApi = null
 
-  @transient private var recordsWritten: Int = 0
+  @transient private var recordsWritten: Int = 1
 
   @transient private var recordId: String = _
 

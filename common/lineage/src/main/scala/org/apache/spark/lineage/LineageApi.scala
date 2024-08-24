@@ -25,6 +25,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.LineageApi.registrations
 import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 
+// messageKey for lineage api => one backend instance per task
 class LineageApi(clientId: String, messageKey: String) extends ILineageApi with Logging {
 
   private[spark] val dispatcher = new LineageDispatcher(clientId)
@@ -51,6 +52,7 @@ class LineageApi(clientId: String, messageKey: String) extends ILineageApi with 
   private[spark] def close(): Unit = dispatcher.close()
 }
 
+// Driver instance
 object LineageApi {
 
   val registrations: mutable.Map[String, LNodeRegistration] =
