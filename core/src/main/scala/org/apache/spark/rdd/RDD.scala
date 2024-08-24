@@ -88,7 +88,7 @@ abstract class RDD[T: ClassTag](
     logWarning("Spark does not support nested RDDs (see SPARK-5063)")
   }
 
-  protected def sc: SparkContext = {
+  private def sc: SparkContext = {
     if (_sc == null) {
       throw SparkCoreErrors.rddLacksSparkContextError()
     }

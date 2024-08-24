@@ -33,9 +33,9 @@ trait Lineage[T] extends RDD[T] {
   @transient def lineageContext: LineageContext
 
   /** Globally unique ID over multiple SparkContext */
-  val nodeId: String = s"${sc.applicationId}#${id}"
+  val nodeId: String = s"${sparkContext.applicationId}#${id}"
   /** Determine whether the value should be transferred with the lineage or not */
-  private val transferValue: String = sc.getConf.get("spark.rdd.intermediateResults")
+  private val transferValue: String = sparkContext.getConf.get("spark.rdd.intermediateResults")
   private[spark] var generateHashOut: T => String = LineageHashUtil.getUUIDHashOut
   protected var _term: String = _
   protected var _description: String = _
@@ -79,7 +79,7 @@ trait Lineage[T] extends RDD[T] {
    * Return a new RDD containing only the elements that satisfy a predicate.
    */
   override def filter(f: T => Boolean): Lineage[T] = {
-    val cleanF = sc.clean(f)
+    val cleanF = sparkContext.clean(f)
     new MapPartitionsLRDD[T, T](
       this,
       (_, _, iter) => iter.filter(cleanF),
@@ -91,7 +91,7 @@ trait Lineage[T] extends RDD[T] {
    * Return a new RDD by applying a function to all elements of this RDD.
    */
   override def map[U: ClassTag](f: T => U): Lineage[U] = {
-    val cleanF = sc.clean(f)
+    val cleanF = sparkContext.clean(f)
     new MapPartitionsLRDD[U, T](this, (_, _, iter) => iter.map(cleanF),
       term = "Map")
   }
@@ -102,7 +102,7 @@ trait Lineage[T] extends RDD[T] {
    * RDD, and then flattening the results.
    */
   override def flatMap[U: ClassTag](f: T => TraversableOnce[U]): Lineage[U] = {
-    val cleanF = sc.clean(f)
+    val cleanF = sparkContext.clean(f)
     new FlatMapPartitionsLRDD[U, T](this, (_, _, iter) => iter.flatMap(cleanF),
       term = "FlatMap")
   }
@@ -110,7 +110,7 @@ trait Lineage[T] extends RDD[T] {
   private def persist[U: ClassTag](f: Iterator[T] => Iterator[U],
                                    term: String = "Save",
                                    description: String = null): Lineage[U] = {
-    val cleanedF = sc.clean(f)
+    val cleanedF = sparkContext.clean(f)
     new PersistLRDD(
       this,
       (_: TaskContext, _: Int, iter: Iterator[T]) => cleanedF(iter),

@@ -27,13 +27,13 @@ import org.apache.spark.{Partition, SparkContext}
 import org.apache.spark.input.StreamFileInputFormat
 
 private[spark] class BinaryFileRDD[T](
-    @transient private val _sc: SparkContext,
+    @transient private val sc: SparkContext,
     inputFormatClass: Class[_ <: StreamFileInputFormat[T]],
     keyClass: Class[String],
     valueClass: Class[T],
     conf: Configuration,
     minPartitions: Int)
-  extends NewHadoopRDD[String, T](_sc, inputFormatClass, keyClass, valueClass, conf) {
+  extends NewHadoopRDD[String, T](sc, inputFormatClass, keyClass, valueClass, conf) {
 
   override def getPartitions: Array[Partition] = {
     val conf = getConf
