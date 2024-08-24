@@ -1,7 +1,9 @@
 #!/bin/bash
 
-NAME=spark-lineage
-VERSION=1.0.0
+DOCKER_USER=floriansdocker
+IMAGE_NAME=spark-lineage
+IMAGE_VERSION=1.0.0
 
-docker build -t $NAME:$VERSION .
-docker tag $NAME:latest your-username/$NAME:$VERSION
+docker build -t $IMAGE_NAME:$IMAGE_VERSION .
+docker tag $IMAGE_NAME:$IMAGE_VERSION $DOCKER_USER/$IMAGE_NAME:$IMAGE_VERSION
+docker push $DOCKER_USER/$IMAGE_NAME:$IMAGE_VERSION
