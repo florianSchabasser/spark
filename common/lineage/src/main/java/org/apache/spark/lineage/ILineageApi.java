@@ -8,4 +8,7 @@ public interface ILineageApi {
 
     // Capture API
     void capture(String flowId, String hashIn, String hashOut, String value);
+    ILineageApi withName(String name);
+    ILineageApi withDescription(String description);
+
 }

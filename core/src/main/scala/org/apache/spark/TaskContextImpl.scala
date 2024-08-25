@@ -17,7 +17,7 @@
 
 package org.apache.spark
 
-import java.util.{Properties, Stack, UUID}
+import java.util.{Properties, Stack}
 import javax.annotation.concurrent.GuardedBy
 
 import scala.collection.JavaConverters._
@@ -25,7 +25,6 @@ import scala.collection.mutable.ArrayBuffer
 
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.internal.{config, Logging}
-import org.apache.spark.lineage.{ILineageApi, LineageApi}
 import org.apache.spark.memory.TaskMemoryManager
 import org.apache.spark.metrics.MetricsSystem
 import org.apache.spark.metrics.source.Source
@@ -99,6 +98,7 @@ private[spark] class TaskContextImpl(
 
   // Lineage: Used to keep track of the assigned identifier within a stage
   @transient private var flowHash: String = ""
+  // Lineage: Buffer / Fix an identifier to resume the lineage afterwards (in case of fan-out)
   @transient private var fixedFlowHash: String = ""
 
   override def addTaskCompletionListener(listener: TaskCompletionListener): this.type = {

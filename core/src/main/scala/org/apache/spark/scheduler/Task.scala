@@ -24,6 +24,7 @@ import org.apache.spark._
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.internal.config.APP_CALLER_CONTEXT
 import org.apache.spark.internal.plugin.PluginContainer
+import org.apache.spark.lineage.LineageApi
 import org.apache.spark.memory.{MemoryMode, TaskMemoryManager}
 import org.apache.spark.metrics.MetricsSystem
 import org.apache.spark.rdd.InputFileBlockHolder
@@ -118,6 +119,7 @@ private[spark] abstract class Task[T](
 
     InputFileBlockHolder.initialize()
     TaskContext.setTaskContext(context)
+    LineageApi.messageKey.set(partitionId.toString)
     taskThread = Thread.currentThread()
 
     if (_reasonIfKilled != null) {

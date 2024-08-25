@@ -26,7 +26,6 @@ import scala.util.{Failure, Success => ScalaSuccess, Try}
 import org.apache.spark.annotation.{Experimental, Since}
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.internal.Logging
-import org.apache.spark.lineage.ILineageApi
 import org.apache.spark.memory.TaskMemoryManager
 import org.apache.spark.metrics.source.Source
 import org.apache.spark.resource.ResourceInformation
@@ -269,8 +268,6 @@ class BarrierTaskContext private[spark] (
   }
 
   override private[spark] def getLocalProperties: Properties = taskContext.getLocalProperties
-
-  override private[spark] def withLineage(): Unit = taskContext.withLineage()
 
   override private[spark] def setFlowHash(flowHash: String, fixed: Boolean = false): Unit =
     taskContext.setFlowHash(flowHash, fixed = fixed)

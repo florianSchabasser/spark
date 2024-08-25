@@ -22,6 +22,7 @@ import scala.reflect._
 import org.apache.spark.{Partition, TaskContext}
 import org.apache.spark.lineage.LineageApi
 import org.apache.spark.rdd.MapPartitionsRDD
+import org.apache.spark.rdd.lineage.FlatMapPartitionsLRDD.incrementNumberInString
 
 private[spark] class FlatMapPartitionsLRDD[U: ClassTag, T: ClassTag](
     prev: Lineage[T],
@@ -36,17 +37,18 @@ private[spark] class FlatMapPartitionsLRDD[U: ClassTag, T: ClassTag](
 
   _term = term
   _description = description
-  LineageApi.getInstance.register(nodeId, _term, _description)
-  LineageApi.getInstance.flowLink(prev.nodeId, nodeId)
+  LineageApi.get.register(nodeId, _term, _description)
+  LineageApi.get.flowLink(prev.nodeId, nodeId)
 
   override def tTag: ClassTag[U] = classTag[U]
   override def lineageContext: LineageContext = prev.lineageContext
 
   override def lineage(value: U, context: TaskContext): U = {
     val hashOut: String = generateHashOut(value)
-    context.setRecordId(FlatMapPartitionsLRDD.incrementNumberInString(context.getRecordId))
+    // handle the fan out by appending a split num, e.g. (0)
+    context.setRecordId(incrementNumberInString(context.getRecordId))
 
-    context.lineage.capture(s"${nodeId}#${context.getRecordId}",
+    lineage().capture(s"${nodeId}#${context.getRecordId}",
       context.getFlowHash(fixed = true), hashOut, extractValue(value))
     context.setFlowHash(hashOut)
 
@@ -54,7 +56,8 @@ private[spark] class FlatMapPartitionsLRDD[U: ClassTag, T: ClassTag](
   }
 
   override def compute(split: Partition, context: TaskContext): Iterator[U] = {
-    f(context, split.index, firstParent[T].iterator(split, context).map(v => setHash(v, context)))
+    f(context, split.index, firstParent[T].iterator(split, context)
+      .map(v => setHash(v, context)))
       .map(v => lineage(v, context))
   }
 

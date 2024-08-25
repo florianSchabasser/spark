@@ -35,8 +35,8 @@ private[spark] class MapPartitionsLRDD[U: ClassTag, T: ClassTag](
 
   _term = term
   _description = description
-  LineageApi.getInstance.register(nodeId, _term, _description)
-  LineageApi.getInstance.flowLink(prev.nodeId, nodeId)
+  LineageApi.get.register(nodeId, _term, _description)
+  LineageApi.get.flowLink(prev.nodeId, nodeId)
 
   override def tTag: ClassTag[U] = classTag[U]
   override def lineageContext: LineageContext = prev.lineageContext

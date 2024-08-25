@@ -19,46 +19,50 @@ package org.apache.spark.lineage
 
 import java.util.UUID
 
-import scala.collection.mutable
-
 import org.apache.spark.internal.Logging
-import org.apache.spark.lineage.LineageApi.registrations
 import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 
 class LineageApi extends ILineageApi with Logging {
 
-  private[spark] val messageKey = ThreadLocal.withInitial(() => "driver")
   private[spark] val dispatcher = new LineageDispatcher(UUID.randomUUID().toString)
 
   override def register(nodeId: String, name: String, description: String): Unit = {
     val lNodeRegistration: LNodeRegistration = LNodeRegistration(nodeId, name, description)
-    registrations.put(nodeId, lNodeRegistration)
-    dispatcher.register(messageKey.get(), lNodeRegistration)
+    dispatcher.register(LineageApi.messageKey.get(), lNodeRegistration)
   }
 
   override def flowLink(srcNodeId: String, destNodeId: String): Unit = {
     if (srcNodeId != null && destNodeId != null) dispatcher
-      .link(messageKey.get(), LNodeLink(srcNodeId, destNodeId))
+      .link(LineageApi.messageKey.get(), LNodeLink(srcNodeId, destNodeId))
   }
 
   override def capture(flowId: String, hashIn: String, hashOut: String,
                        value: String = null): Unit = {
-    val lNodeRegistration: LNodeRegistration = registrations
-      .get(s"${flowId.split("#")(0)}#${flowId.split("#")(1)}").orNull
-    dispatcher.capture(messageKey.get(), LFlow(flowId, hashIn, hashOut, lNodeRegistration.name,
-      lNodeRegistration.description, value))
+    dispatcher.capture(LineageApi.messageKey.get(), LFlow(flowId, hashIn, hashOut,
+      LineageApi.name.get(), LineageApi.description.get(), value))
   }
 
-  private[spark] def close(): Unit = dispatcher.close()
+  override def withName(name: String): ILineageApi = {
+    LineageApi.name.set(name)
+    this
+  }
+
+  override def withDescription(description: String): ILineageApi = {
+    LineageApi.description.set(description)
+    this
+  }
+
 }
 
 // Driver / Worker instance (one)
 object LineageApi {
 
-  val registrations: mutable.Map[String, LNodeRegistration] =
-    mutable.Map[String, LNodeRegistration]()
+  private[spark] val messageKey: ThreadLocal[String] = ThreadLocal.withInitial(() => "driver")
+  private[spark] val name: ThreadLocal[String] = new ThreadLocal
+  private[spark] val description: ThreadLocal[String] = new ThreadLocal
 
   private val apiInstance: ILineageApi = new LineageApi()
 
-  def getInstance: ILineageApi = apiInstance
+  def get: ILineageApi = apiInstance
+
 }

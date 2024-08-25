@@ -22,7 +22,6 @@ import java.util.Properties
 
 import org.apache.spark.annotation.{DeveloperApi, Evolving, Since}
 import org.apache.spark.executor.TaskMetrics
-import org.apache.spark.lineage.ILineageApi
 import org.apache.spark.memory.TaskMemoryManager
 import org.apache.spark.metrics.source.Source
 import org.apache.spark.resource.ResourceInformation

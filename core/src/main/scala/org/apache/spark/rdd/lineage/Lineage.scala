@@ -24,7 +24,7 @@ import org.apache.hadoop.io.compress.CompressionCodec
 import org.apache.hadoop.mapred.TextOutputFormat
 
 import org.apache.spark.TaskContext
-import org.apache.spark.lineage.{ILineageGetter, LineageApi}
+import org.apache.spark.lineage.{ILineageApi, ILineageGetter, LineageApi}
 import org.apache.spark.rdd.RDD
 
 trait Lineage[T] extends RDD[T] {
@@ -44,18 +44,22 @@ trait Lineage[T] extends RDD[T] {
     val hashOut: String = generateHashOut(value)
 
     // Use partitionId as message key, to process partitions in parallel on backend side
-    // but sequential within a task
-    // Retry will write to the same kafka partition
-    context.lineage.capture(s"${nodeId}#${context.getRecordId}",
+    // but sequential within a task - Retries will write to the same kafka partition
+
+      lineage().capture(s"${nodeId}#${context.getRecordId}",
       context.getFlowHash(), hashOut, extractValue(value))
     context.setFlowHash(hashOut)
 
     value
   }
 
+  def lineage(): ILineageApi = {
+    LineageApi.get.withName(_term).withDescription(_description)
+  }
+
   def withDescription(description: String): Lineage[T] = {
     _description = description
-    LineageApi.getInstance.register(nodeId, _term, _description)
+    LineageApi.get.register(nodeId, _term, _description)
     this
   }
 

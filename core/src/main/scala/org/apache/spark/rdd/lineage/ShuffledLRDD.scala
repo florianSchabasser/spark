@@ -33,17 +33,18 @@ private[spark] class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
   private val _prevNodeId = prev.nodeId
   _term = term
   _description = description
-  LineageApi.getInstance.register(nodeId, _term, _description)
-  LineageApi.getInstance.flowLink(_prevNodeId, nodeId)
+  LineageApi.get.register(nodeId, _term, _description)
+  LineageApi.get.flowLink(_prevNodeId, nodeId)
 
   override def tTag: ClassTag[(K, C)] = classTag[(K, C)]
   override def lineageContext: LineageContext = prev.lineageContext
 
   override def lineage(value: (K, C), context: TaskContext): (K, C) = {
     val hashOut: String = generateHashOut(value)
+    // use reduced value as recordId, since it is unique after the reduceByKey
     context.setRecordId(value._1.toString)
 
-    context.lineage.capture(s"${nodeId}#${context.getRecordId}",
+    lineage().capture(s"${nodeId}#${context.getRecordId}",
       s"${_prevNodeId}#${value._1}", hashOut, extractValue(value))
     context.setFlowHash(hashOut)
 
