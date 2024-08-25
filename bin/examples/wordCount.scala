@@ -3,8 +3,8 @@
 import org.apache.spark.rdd.lineage.LineageContext
 import org.apache.spark.rdd.lineage.Conversions._
 
-val inputPath = "hdfs://namenode:9000/user/root/input/words_small.txt"
-val outputPath = "hdfs://namenode:9000/user/root/output/word_count.txt"
+val inputPath = "hdfs://namenode:9000/user/root/input/words.txt"
+val outputPath = "hdfs://namenode:9000/user/root/output/word.txt"
 
 val lc = new LineageContext(sc)
 val inputRDD = lc.textFile(inputPath)
