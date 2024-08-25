@@ -272,8 +272,6 @@ class BarrierTaskContext private[spark] (
 
   override private[spark] def withLineage(): Unit = taskContext.withLineage()
 
-  override private[spark] def lineage: ILineageApi = taskContext.lineage
-
   override private[spark] def setFlowHash(flowHash: String, fixed: Boolean = false): Unit =
     taskContext.setFlowHash(flowHash, fixed = fixed)
 

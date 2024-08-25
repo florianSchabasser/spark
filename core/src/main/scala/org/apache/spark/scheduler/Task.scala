@@ -70,8 +70,7 @@ private[spark] abstract class Task[T](
     val jobId: Option[Int] = None,
     val appId: Option[String] = None,
     val appAttemptId: Option[String] = None,
-    val isBarrier: Boolean = false,
-    val withLineage: Boolean = false) extends Serializable {
+    val isBarrier: Boolean = false) extends Serializable {
 
   @transient lazy val metrics: TaskMetrics =
     SparkEnv.get.closureSerializer.newInstance().deserialize(ByteBuffer.wrap(serializedTaskMetrics))
@@ -120,8 +119,6 @@ private[spark] abstract class Task[T](
     InputFileBlockHolder.initialize()
     TaskContext.setTaskContext(context)
     taskThread = Thread.currentThread()
-
-    if (withLineage) context.withLineage()
 
     if (_reasonIfKilled != null) {
       kill(interruptThread = false, _reasonIfKilled)

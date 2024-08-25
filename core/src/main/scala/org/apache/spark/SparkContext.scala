@@ -237,7 +237,6 @@ class SparkContext(config: SparkConf) extends Logging {
   private var _shuffleDriverComponents: ShuffleDriverComponents = _
   private var _plugins: Option[PluginContainer] = None
   private var _resourceProfileManager: ResourceProfileManager = _
-  private var _withLineage: Boolean = false
 
   /* ------------------------------------------------------------------------------------- *
    | Accessors and public fields. These provide access to the internal state of the        |
@@ -245,9 +244,6 @@ class SparkContext(config: SparkConf) extends Logging {
    * ------------------------------------------------------------------------------------- */
 
   private[spark] def conf: SparkConf = _conf
-
-  private[spark] def activateLineage(): Unit = _withLineage = true
-  private[spark] def withLineage: Boolean = _withLineage
 
   /**
    * Return a copy of this SparkContext's configuration. The configuration ''cannot'' be

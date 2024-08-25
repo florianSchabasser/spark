@@ -26,8 +26,6 @@ import org.apache.spark.util.SerializableConfiguration
 
 class LineageContext(@transient val sparkContext: SparkContext) extends Serializable {
 
-  sparkContext.activateLineage()
-
   /**
    * Read a text file from HDFS, a local file system (available on all nodes), or any
    * Hadoop-supported file system URI, and return it as an RDD of Strings.

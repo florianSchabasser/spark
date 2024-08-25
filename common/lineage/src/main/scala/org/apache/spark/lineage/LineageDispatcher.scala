@@ -17,12 +17,10 @@
 
 package org.apache.spark.lineage
 
-import java.util.Properties
-
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.apache.kafka.common.header.Header
 import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.serialization.StringSerializer
@@ -31,7 +29,10 @@ import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 
 class LineageDispatcher(clientId: String) {
 
-  private val producer = new KafkaProducer(getProducerConfig,
+  val kafkaConfig = new java.util.HashMap[String, Object]()
+  kafkaConfig.put("bootstrap.servers", "kafka-1:29092,kafka-2:39092")
+
+  private val producer = new KafkaProducer(kafkaConfig,
     new StringSerializer(), new StringSerializer())
   private val jsonMapper: JsonMapper = JsonMapper
     .builder()
@@ -65,12 +66,4 @@ class LineageDispatcher(clientId: String) {
     producer.close()
   }
 
-  private def getProducerConfig: Properties = {
-    val props = new Properties()
-    val configFile = getClass.getResourceAsStream("/conf/kafka.properties")
-
-    props.load(configFile)
-    props.put(ProducerConfig.CLIENT_ID_CONFIG, clientId)
-    props
-  }
 }

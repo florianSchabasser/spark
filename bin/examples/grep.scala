@@ -1,8 +1,10 @@
+// docker exec -it 66b79e16384c spark-shell --master spark://spark-master:7077 --conf "spark.rdd.intermediateResults=true"
+
 import org.apache.spark.rdd.lineage.LineageContext
 import org.apache.spark.rdd.lineage.Conversions._
 
-val inputPath = "hdfs://localhost:9000/user/root/input/logs.txt"
-val outputPath = "hdfs://localhost:9000/user/root/output/logs_filtered.txt"
+val inputPath = "hdfs://namenode:9000/user/root/input/logs.txt"
+val outputPath = "hdfs://namenode:9000/user/root/output/logs_filtered.txt"
 val searchTerm = "Neo4j"
 
 val lc = new LineageContext(sc)

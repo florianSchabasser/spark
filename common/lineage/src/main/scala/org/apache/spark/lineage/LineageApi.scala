@@ -25,42 +25,40 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.LineageApi.registrations
 import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 
-// messageKey for lineage api => one backend instance per task
-class LineageApi(clientId: String, messageKey: String) extends ILineageApi with Logging {
+class LineageApi extends ILineageApi with Logging {
 
-  private[spark] val dispatcher = new LineageDispatcher(clientId)
+  private[spark] val messageKey = ThreadLocal.withInitial(() => "driver")
+  private[spark] val dispatcher = new LineageDispatcher(UUID.randomUUID().toString)
 
   override def register(nodeId: String, name: String, description: String): Unit = {
     val lNodeRegistration: LNodeRegistration = LNodeRegistration(nodeId, name, description)
     registrations.put(nodeId, lNodeRegistration)
-    dispatcher.register(messageKey, lNodeRegistration)
+    dispatcher.register(messageKey.get(), lNodeRegistration)
   }
 
   override def flowLink(srcNodeId: String, destNodeId: String): Unit = {
     if (srcNodeId != null && destNodeId != null) dispatcher
-      .link(messageKey, LNodeLink(srcNodeId, destNodeId))
+      .link(messageKey.get(), LNodeLink(srcNodeId, destNodeId))
   }
 
   override def capture(flowId: String, hashIn: String, hashOut: String,
                        value: String = null): Unit = {
     val lNodeRegistration: LNodeRegistration = registrations
       .get(s"${flowId.split("#")(0)}#${flowId.split("#")(1)}").orNull
-    dispatcher.capture(messageKey, LFlow(flowId, hashIn, hashOut, lNodeRegistration.name,
+    dispatcher.capture(messageKey.get(), LFlow(flowId, hashIn, hashOut, lNodeRegistration.name,
       lNodeRegistration.description, value))
   }
 
   private[spark] def close(): Unit = dispatcher.close()
 }
 
-// Driver instance
+// Driver / Worker instance (one)
 object LineageApi {
 
   val registrations: mutable.Map[String, LNodeRegistration] =
     mutable.Map[String, LNodeRegistration]()
 
-  // One application gets a single messageKey -> one partition registration / link of nodes
-  private val apiInstance: ILineageApi = new LineageApi(UUID.randomUUID().toString,
-    UUID.randomUUID().toString)
+  private val apiInstance: ILineageApi = new LineageApi()
 
   def getInstance: ILineageApi = apiInstance
 }

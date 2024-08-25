@@ -72,8 +72,6 @@ private[spark] class TaskContextImpl(
   /** List of callback functions to execute when the task fails. */
   @transient private val onFailureCallbacks = new Stack[TaskFailureListener]
 
-  @transient private var lineageApi: ILineageApi = null
-
   @transient private var recordsWritten: Int = 1
 
   @transient private var recordId: String = _
@@ -282,22 +280,6 @@ private[spark] class TaskContextImpl(
   private[spark] override def getKillReason(): Option[String] = {
     reasonIfKilled
   }
-
-  override private[spark] def withLineage(): Unit = {
-    // MessageKey = partitionId -> the messages of one task should be executed in seq
-    // order to handle retries
-    this.lineageApi = new LineageApi(UUID.randomUUID().toString, partitionId.toString)
-    this.addTaskFailureListener(new TaskFailureListener {
-      override def onTaskFailure(context: TaskContext, error: Throwable): Unit =
-        context.lineage.asInstanceOf[LineageApi].close()
-    })
-    this.addTaskCompletionListener(new TaskCompletionListener {
-      override def onTaskCompletion(context: TaskContext): Unit = {
-        context.lineage.asInstanceOf[LineageApi].close()    }
-    })
-  }
-
-  private[spark] def lineage: ILineageApi = lineageApi
 
   private[spark] override def setFlowHash(flowHash: String, fixed: Boolean = false): Unit = {
     if (fixed) this.fixedFlowHash = flowHash else this.flowHash = flowHash
