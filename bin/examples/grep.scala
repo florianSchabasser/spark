@@ -1,4 +1,4 @@
-// docker exec -it 66b79e16384c spark-shell --master spark://spark-master:7077 --conf "spark.rdd.intermediateResults=true"
+// docker exec -it 29d5515597fe spark-shell --master spark://spark-master:7077 --conf "spark.rdd.intermediateResults=true"
 
 import org.apache.spark.rdd.lineage.LineageContext
 import org.apache.spark.rdd.lineage.Conversions._
