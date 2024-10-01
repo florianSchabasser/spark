@@ -22,7 +22,6 @@ import scala.reflect._
 import org.apache.spark.{Partition, TaskContext}
 import org.apache.spark.lineage.LineageApi
 import org.apache.spark.rdd.MapPartitionsRDD
-import org.apache.spark.rdd.lineage.FlatMapPartitionsLRDD.incrementNumberInString
 
 private[spark] class FlatMapPartitionsLRDD[U: ClassTag, T: ClassTag](
     prev: Lineage[T],
@@ -48,8 +47,14 @@ private[spark] class FlatMapPartitionsLRDD[U: ClassTag, T: ClassTag](
     // handle the fan out by appending a split num, e.g. (0)
     context.setRecordId(incrementNumberInString(context.getRecordId))
 
-    lineage().capture(s"${nodeId}#${context.getRecordId}",
-      context.getFlowHash(fixed = true), hashOut, extractValue(value))
+    if (detailed) {
+      lineage().capture(s"${nodeId}#${context.getRecordId}",
+        context.getFlowHash(fixed = true), hashOut, extractValue(value))
+    } else {
+      lineage().capture(s"${nodeId}#${context.getRecordId}",
+        context.getFlowHash(fixed = true), hashOut)
+    }
+
     context.setFlowHash(hashOut)
 
     value
@@ -65,9 +70,7 @@ private[spark] class FlatMapPartitionsLRDD[U: ClassTag, T: ClassTag](
     context.setFlowHash(context.getFlowHash(), fixed = true)
     value
   }
-}
 
-object FlatMapPartitionsLRDD {
   private def incrementNumberInString(input: String): String = {
     val pattern = """(.*\()(\d+)(\))""".r
 

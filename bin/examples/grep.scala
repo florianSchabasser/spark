@@ -5,7 +5,7 @@ import org.apache.spark.rdd.lineage.Conversions._
 
 val inputPath = "hdfs://namenode:9000/user/root/input/logs.txt"
 val outputPath = "hdfs://namenode:9000/user/root/output/logs_filtered.txt"
-val searchTerm = "Neo4j"
+val searchTerm = "word"
 
 val lc = new LineageContext(sc)
 val inputRDD = lc.textFile(inputPath)

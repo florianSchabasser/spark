@@ -18,6 +18,7 @@
 package org.apache.spark.rdd.lineage
 
 import scala.reflect.ClassTag
+import scala.util.{Try}
 
 import org.apache.hadoop.io.{NullWritable, Text}
 import org.apache.hadoop.io.compress.CompressionCodec
@@ -35,19 +36,28 @@ trait Lineage[T] extends RDD[T] {
   /** Globally unique ID over multiple SparkContext */
   val nodeId: String = s"${sparkContext.applicationId}#${id}"
   /** Determine whether the value should be transferred with the lineage or not */
-  private val transferValue: String = sparkContext.getConf.get("spark.rdd.intermediateResults")
+  val detailed: Boolean = stringToBoolean(sparkContext.getConf
+    .get("spark.rdd.lineage.detailed"))
   private[spark] var generateHashOut: T => String = LineageHashUtil.getUUIDHashOut
   protected var _term: String = _
   protected var _description: String = _
+
+  private def stringToBoolean(s: String): Boolean = {
+    Try(s.toBoolean).getOrElse(false)
+  }
 
   def lineage(value: T, context: TaskContext): T = {
     val hashOut: String = generateHashOut(value)
 
     // Use partitionId as message key, to process partitions in parallel on backend side
     // but sequential within a task - Retries will write to the same kafka partition
-
+    if (detailed) {
       lineage().capture(s"${nodeId}#${context.getRecordId}",
-      context.getFlowHash(), hashOut, extractValue(value))
+        context.getFlowHash(), hashOut, extractValue(value))
+    } else {
+      lineage().capture(s"${nodeId}#${context.getRecordId}",
+        context.getFlowHash(), hashOut)
+    }
     context.setFlowHash(hashOut)
 
     value
@@ -68,15 +78,12 @@ trait Lineage[T] extends RDD[T] {
     dependencies.head.rdd.asInstanceOf[Lineage[U]]
 
   protected def extractValue(value: T): String = {
-    if (transferValue != null && transferValue.toBoolean) {
-      return value match {
-        case getter: ILineageGetter => getter.getValue
-        case tuple: (?, ?) => s"${tuple._2}"
-        case plain: String => plain
-        case any => any.toString
-      }
+    value match {
+      case getter: ILineageGetter => getter.getValue
+      case tuple: (?, ?) => s"${tuple._2}"
+      case plain: String => plain
+      case any => any.toString
     }
-    null
   }
 
   /**

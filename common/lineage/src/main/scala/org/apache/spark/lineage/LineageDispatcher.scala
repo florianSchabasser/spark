@@ -17,6 +17,7 @@
 
 package org.apache.spark.lineage
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
@@ -27,7 +28,7 @@ import org.apache.kafka.common.serialization.StringSerializer
 
 import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 
-class LineageDispatcher(clientId: String) {
+class LineageDispatcher {
 
   val kafkaConfig = new java.util.HashMap[String, Object]()
   kafkaConfig.put("bootstrap.servers", "kafka-1:29092,kafka-2:39092")
@@ -38,6 +39,7 @@ class LineageDispatcher(clientId: String) {
     .builder()
     .addModule(DefaultScalaModule)
     .addModule(new JavaTimeModule())
+    .serializationInclusion(JsonInclude.Include.NON_NULL)
     .build()
 
   def register(messageKey: String, nodeRegistration: LNodeRegistration): Unit = {
@@ -57,8 +59,7 @@ class LineageDispatcher(clientId: String) {
   }
 
   def capture(messageKey: String, flow: LFlow): Unit = {
-    val record = new ProducerRecord[String, String]("lineage-flow", messageKey,
-      jsonMapper.writeValueAsString(flow))
+    val record = new ProducerRecord[String, String]("lineage-flow", messageKey, flow.toCsvString())
     producer.send(record)
   }
 

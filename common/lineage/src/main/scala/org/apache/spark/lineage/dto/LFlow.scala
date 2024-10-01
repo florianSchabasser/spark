@@ -18,4 +18,16 @@
 package org.apache.spark.lineage.dto
 
 case class LFlow(flowId: String, hashIn: String, hashOut: String,
-                 name: String, description: String, value: Any) {}
+                 name: String, description: String, value: Any = None) {
+
+  // Auxiliary constructor
+  def this(flowId: String, hashIn: String, hashOut: String) =
+    this(flowId, hashIn, hashOut, null, null, null)
+
+  def toCsvString(): String = {
+    if (name == null && description == null && value == null) {
+      return s"$flowId,$hashIn,$hashOut"
+    }
+    return s"$flowId,$hashIn,$hashOut,$name,$description,$value"
+  }
+}

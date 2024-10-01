@@ -17,14 +17,12 @@
 
 package org.apache.spark.lineage
 
-import java.util.UUID
-
 import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 
 class LineageApi extends ILineageApi with Logging {
 
-  private[spark] val dispatcher = new LineageDispatcher(UUID.randomUUID().toString)
+  private[spark] val dispatcher = new LineageDispatcher()
 
   override def register(nodeId: String, name: String, description: String): Unit = {
     val lNodeRegistration: LNodeRegistration = LNodeRegistration(nodeId, name, description)
@@ -40,6 +38,10 @@ class LineageApi extends ILineageApi with Logging {
                        value: String = null): Unit = {
     dispatcher.capture(LineageApi.messageKey.get(), LFlow(flowId, hashIn, hashOut,
       LineageApi.name.get(), LineageApi.description.get(), value))
+  }
+
+  override def capture(flowId: String, hashIn: String, hashOut: String): Unit = {
+    dispatcher.capture(LineageApi.messageKey.get(), new LFlow(flowId, hashIn, hashOut))
   }
 
   override def withName(name: String): ILineageApi = {

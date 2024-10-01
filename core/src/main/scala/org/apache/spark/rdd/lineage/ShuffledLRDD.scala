@@ -44,8 +44,14 @@ private[spark] class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
     // use reduced value as recordId, since it is unique after the reduceByKey
     context.setRecordId(value._1.toString)
 
-    lineage().capture(s"${nodeId}#${context.getRecordId}",
-      s"${_prevNodeId}#${value._1}", hashOut, extractValue(value))
+    if (detailed) {
+      lineage().capture(s"${nodeId}#${context.getRecordId}",
+        s"${_prevNodeId}#${value._1}", hashOut, extractValue(value))
+    } else {
+      lineage().capture(s"${nodeId}#${context.getRecordId}",
+        s"${_prevNodeId}#${value._1}", hashOut)
+    }
+
     context.setFlowHash(hashOut)
 
     value

@@ -44,8 +44,14 @@ private[spark] class PersistLRDD[U: ClassTag, T: ClassTag](
   override def lineage(value: U, context: TaskContext): U = {
     val hashOut: String = s"write#${context.partitionId()}#${context.getRecordsWritten}"
 
-    lineage().capture(s"${nodeId}#${context.getRecordId}",
-      context.getFlowHash(), hashOut, extractValue(value))
+    if (detailed) {
+      lineage().capture(s"${nodeId}#${context.getRecordId}",
+        context.getFlowHash(), hashOut, extractValue(value))
+    } else {
+      lineage().capture(s"${nodeId}#${context.getRecordId}",
+        context.getFlowHash(), hashOut)
+    }
+
     context.setFlowHash(hashOut)
 
     value
