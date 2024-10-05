@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
 import org.apache.kafka.common.header.Header
 import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.serialization.StringSerializer
@@ -31,7 +31,21 @@ import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 class LineageDispatcher {
 
   val kafkaConfig = new java.util.HashMap[String, Object]()
-  kafkaConfig.put("bootstrap.servers", "kafka-1:29092,kafka-2:39092")
+  kafkaConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+    "kafka-1:29092,kafka-2:39092,kafka-3:49092")
+  // increase the buffer to handle thirty partitions and generally large volume of data
+  kafkaConfig.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 268435456L)
+  // compress with a fast algorithm
+  kafkaConfig.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "zstd")
+  // ack the messages to ensure at-least-once semantics
+  kafkaConfig.put(ProducerConfig.ACKS_CONFIG, "all")
+  // prevent deduplication of messages
+  kafkaConfig.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "false")
+  // retry - wait for 500ms and try three times
+  kafkaConfig.put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG, "500")
+  kafkaConfig.put(ProducerConfig.RETRIES_CONFIG, "3")
+  // retry - ensure that messages remain in order
+  kafkaConfig.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1")
 
   private val producer = new KafkaProducer(kafkaConfig,
     new StringSerializer(), new StringSerializer())
