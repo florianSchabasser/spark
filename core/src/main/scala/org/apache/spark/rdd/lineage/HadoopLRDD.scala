@@ -34,7 +34,7 @@ private[spark] class HadoopLRDD[K, V](@transient lc: LineageContext,
                        keyClass: Class[K],
                        valueClass: Class[V],
                        minPartitions: Int,
-                       term: String = "HadoopLRDD",
+                       name: String = "HadoopLRDD",
                        description: String = null)
   extends HadoopRDD[K, V](
     lc.sparkContext,
@@ -45,9 +45,9 @@ private[spark] class HadoopLRDD[K, V](@transient lc: LineageContext,
     valueClass,
     minPartitions) with Lineage[(K, V)] {
 
-  _term = term
+  _name = name
   _description = description
-  LineageApi.get.register(nodeId, _term, _description)
+  LineageApi.get.register(nodeId, _name, _description)
 
   override def tTag: ClassTag[(K, V)] = classTag[(K, V)]
   override def lineageContext: LineageContext = lc

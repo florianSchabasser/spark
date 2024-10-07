@@ -78,6 +78,6 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Serializ
       keyClass,
       valueClass,
       minPartitions,
-      term = "Read", description = s"Read from ${path}").setName(path)
+      name = "Read", description = s"Read from ${path}").setName(path)
   }
 }

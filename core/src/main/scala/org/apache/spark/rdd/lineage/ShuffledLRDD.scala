@@ -26,14 +26,14 @@ import org.apache.spark.rdd.ShuffledRDD
 private[spark] class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
     @transient prev: Lineage[_ <: Product2[K, V]],
     part: Partitioner,
-    term: String = "ShuffledLRDD", description: String = null)
+    name: String = "ShuffledLRDD", description: String = null)
   extends ShuffledRDD[K, V, C](prev, part)
   with Lineage[(K, C)] {
 
   private val _prevNodeId = prev.nodeId
-  _term = term
+  _name = name
   _description = description
-  LineageApi.get.register(nodeId, _term, _description)
+  LineageApi.get.register(nodeId, _name, _description)
   LineageApi.get.flowLink(_prevNodeId, nodeId)
 
   override def tTag: ClassTag[(K, C)] = classTag[(K, C)]

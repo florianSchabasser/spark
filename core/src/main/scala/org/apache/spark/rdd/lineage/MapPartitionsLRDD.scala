@@ -29,13 +29,13 @@ private[spark] class MapPartitionsLRDD[U: ClassTag, T: ClassTag](
     preservesPartitioning: Boolean = false,
     isFromBarrier: Boolean = false,
     isOrderSensitive: Boolean = false,
-    term: String = "MapPartitions", description: String = null)
+    name: String = "MapPartitions", description: String = null)
   extends MapPartitionsRDD[U, T](prev, f, preservesPartitioning, isFromBarrier, isOrderSensitive)
     with Lineage[U] {
 
-  _term = term
+  _name = name
   _description = description
-  LineageApi.get.register(nodeId, _term, _description)
+  LineageApi.get.register(nodeId, _name, _description)
   LineageApi.get.flowLink(prev.nodeId, nodeId)
 
   override def tTag: ClassTag[U] = classTag[U]

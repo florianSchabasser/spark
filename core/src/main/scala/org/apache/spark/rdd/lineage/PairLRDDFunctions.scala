@@ -34,7 +34,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
 
   def lineageContext: LineageContext = self.lineageContext
 
-  var term: String = _
+  var name: String = _
 
   /**
    * Generic function to combine the elements for each key using a custom set of aggregation
@@ -74,7 +74,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
       self.context.clean(mergeCombiners))
 
     self.generateHashOut = LineageHashUtil.getKeyHashOut(self)
-    new ShuffledLRDD[K, V, C](self, partitioner, term)
+    new ShuffledLRDD[K, V, C](self, partitioner, name)
       .setSerializer(serializer)
       .setAggregator(aggregator)
       .asInstanceOf[ShuffledLRDD[K, V, C]]
@@ -106,7 +106,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    * parallelism level.
    */
   override def reduceByKey(func: (V, V) => V): Lineage[(K, V)] = {
-    this.term = "reduceByKey"
+    this.name = "reduceByKey"
     reduceByKey(defaultPartitioner(self), func)
   }
 }

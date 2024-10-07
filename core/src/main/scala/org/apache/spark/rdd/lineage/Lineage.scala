@@ -35,16 +35,12 @@ trait Lineage[T] extends RDD[T] {
 
   /** Globally unique ID over multiple SparkContext */
   val nodeId: String = s"${sparkContext.applicationId}#${id}"
-  /** Determine whether the value should be transferred with the lineage or not */
+  /** Flag for detailed lineage */
   val detailed: Boolean = stringToBoolean(sparkContext.getConf
     .get("spark.rdd.lineage.detailed"))
   private[spark] var generateHashOut: T => String = LineageHashUtil.getUUIDHashOut
-  protected var _term: String = _
+  protected var _name: String = _
   protected var _description: String = _
-
-  private def stringToBoolean(s: String): Boolean = {
-    Try(s.toBoolean).getOrElse(false)
-  }
 
   def lineage(value: T, context: TaskContext): T = {
     val hashOut: String = generateHashOut(value)
@@ -64,12 +60,12 @@ trait Lineage[T] extends RDD[T] {
   }
 
   def lineage(): ILineageApi = {
-    LineageApi.get.withName(_term).withDescription(_description)
+    LineageApi.get.withName(_name).withDescription(_description)
   }
 
   def withDescription(description: String): Lineage[T] = {
     _description = description
-    LineageApi.get.register(nodeId, _term, _description)
+    LineageApi.get.register(nodeId, _name, _description)
     this
   }
 
@@ -95,7 +91,7 @@ trait Lineage[T] extends RDD[T] {
       this,
       (_, _, iter) => iter.filter(cleanF),
       preservesPartitioning = true,
-      term = "Filter")
+      name = "Filter")
   }
 
   /**
@@ -104,7 +100,7 @@ trait Lineage[T] extends RDD[T] {
   override def map[U: ClassTag](f: T => U): Lineage[U] = {
     val cleanF = sparkContext.clean(f)
     new MapPartitionsLRDD[U, T](this, (_, _, iter) => iter.map(cleanF),
-      term = "Map")
+      name = "Map")
   }
 
 
@@ -115,17 +111,17 @@ trait Lineage[T] extends RDD[T] {
   override def flatMap[U: ClassTag](f: T => TraversableOnce[U]): Lineage[U] = {
     val cleanF = sparkContext.clean(f)
     new FlatMapPartitionsLRDD[U, T](this, (_, _, iter) => iter.flatMap(cleanF),
-      term = "FlatMap")
+      name = "FlatMap")
   }
 
   private def persist[U: ClassTag](f: Iterator[T] => Iterator[U],
-                                   term: String = "Save",
+                                   name: String = "Save",
                                    description: String = null): Lineage[U] = {
     val cleanedF = sparkContext.clean(f)
     new PersistLRDD(
       this,
       (_: TaskContext, _: Int, iter: Iterator[T]) => cleanedF(iter),
-      term = term, description = description)
+      name = name, description = description)
   }
 
   /**
@@ -141,5 +137,9 @@ trait Lineage[T] extends RDD[T] {
       }
     }, description = s"Save to ${path}")
     rdd.saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](path, codec)
+  }
+
+  private def stringToBoolean(s: String): Boolean = {
+    Try(s.toBoolean).getOrElse(false)
   }
 }
