@@ -34,7 +34,7 @@ class LineageDispatcher {
   kafkaConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
     "kafka-1:29092,kafka-2:39092,kafka-3:49092")
   // increase the buffer to handle thirty partitions and generally large volume of data
-  kafkaConfig.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 268435456L)
+  kafkaConfig.put(ProducerConfig.BUFFER_MEMORY_CONFIG, "268435456")
   // compress with a fast algorithm
   kafkaConfig.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "zstd")
   // ack the messages to ensure at-least-once semantics
