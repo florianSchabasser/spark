@@ -74,6 +74,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
       self.context.clean(mergeCombiners))
 
     self.generateHashOut = LineageHashUtil.getKeyHashOut(self)
+    self.capture = true
     new ShuffledLRDD[K, V, C](self, partitioner, name)
       .setSerializer(serializer)
       .setAggregator(aggregator)

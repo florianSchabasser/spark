@@ -59,6 +59,8 @@ class LineageApi extends ILineageApi with Logging {
 // Driver / Worker instance (one)
 object LineageApi {
 
+  // Use partitionId as message key, to process partitions in parallel on backend side
+  // but sequential within a task - Retries will write to the same kafka partition
   private[spark] val messageKey: ThreadLocal[String] = ThreadLocal.withInitial(() => "driver")
   private[spark] val name: ThreadLocal[String] = new ThreadLocal
   private[spark] val description: ThreadLocal[String] = new ThreadLocal

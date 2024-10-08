@@ -43,19 +43,15 @@ private[spark] class FlatMapPartitionsLRDD[U: ClassTag, T: ClassTag](
   override def lineageContext: LineageContext = prev.lineageContext
 
   override def lineage(value: U, context: TaskContext): U = {
-    val hashOut: String = generateHashOut(value)
     // handle the fan out by appending a split num, e.g. (0)
     context.setRecordId(incrementNumberInString(context.getRecordId))
 
     if (detailed) {
-      lineage().capture(s"${nodeId}#${context.getRecordId}",
+      val hashOut: String = generateHashOut(value)
+      lineage().capture(s"$nodeId#$context.getRecordId",
         context.getFlowHash(fixed = true), hashOut, extractValue(value))
-    } else {
-      lineage().capture(s"${nodeId}#${context.getRecordId}",
-        context.getFlowHash(fixed = true), hashOut)
+      context.setFlowHash(hashOut)
     }
-
-    context.setFlowHash(hashOut)
 
     value
   }
@@ -79,7 +75,7 @@ private[spark] class FlatMapPartitionsLRDD[U: ClassTag, T: ClassTag](
         val incrementedNumber = number.toInt + 1
         s"$prefix$incrementedNumber$suffix"
       case _ =>
-        s"${input}(0)"
+        s"$input(0)"
     }
   }
 }

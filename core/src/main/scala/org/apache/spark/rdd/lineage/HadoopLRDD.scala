@@ -47,6 +47,7 @@ private[spark] class HadoopLRDD[K, V](@transient lc: LineageContext,
 
   _name = name
   _description = description
+  capture = true
   LineageApi.get.register(nodeId, _name, _description)
 
   override def tTag: ClassTag[(K, V)] = classTag[(K, V)]

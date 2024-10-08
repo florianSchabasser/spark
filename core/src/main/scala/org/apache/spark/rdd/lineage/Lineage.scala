@@ -18,7 +18,7 @@
 package org.apache.spark.rdd.lineage
 
 import scala.reflect.ClassTag
-import scala.util.{Try}
+import scala.util.Try
 
 import org.apache.hadoop.io.{NullWritable, Text}
 import org.apache.hadoop.io.compress.CompressionCodec
@@ -34,24 +34,23 @@ trait Lineage[T] extends RDD[T] {
   @transient def lineageContext: LineageContext
 
   /** Globally unique ID over multiple SparkContext */
-  val nodeId: String = s"${sparkContext.applicationId}#${id}"
+  val nodeId: String = s"${sparkContext.applicationId}#$id"
   /** Flag for detailed lineage */
-  val detailed: Boolean = stringToBoolean(sparkContext.getConf
+  protected val detailed: Boolean = stringToBoolean(sparkContext.getConf
     .get("spark.rdd.lineage.detailed"))
-  private[spark] var generateHashOut: T => String = LineageHashUtil.getUUIDHashOut
+  var capture: Boolean = false
+  var generateHashOut: T => String = LineageHashUtil.getUUIDHashOut
   protected var _name: String = _
   protected var _description: String = _
 
   def lineage(value: T, context: TaskContext): T = {
     val hashOut: String = generateHashOut(value)
 
-    // Use partitionId as message key, to process partitions in parallel on backend side
-    // but sequential within a task - Retries will write to the same kafka partition
     if (detailed) {
-      lineage().capture(s"${nodeId}#${context.getRecordId}",
+      lineage().capture(s"$nodeId#${context.getRecordId}",
         context.getFlowHash(), hashOut, extractValue(value))
-    } else {
-      lineage().capture(s"${nodeId}#${context.getRecordId}",
+    } else if (capture) {
+      lineage().capture(s"$nodeId#${context.getRecordId}",
         context.getFlowHash(), hashOut)
     }
     context.setFlowHash(hashOut)
@@ -135,7 +134,7 @@ trait Lineage[T] extends RDD[T] {
         text.set(x.toString)
         (NullWritable.get(), text)
       }
-    }, description = s"Save to ${path}")
+    }, description = s"Save to $path")
     rdd.saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](path, codec)
   }
 
