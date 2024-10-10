@@ -17,14 +17,12 @@
 
 package org.apache.spark.rdd.lineage
 
-import java.security.MessageDigest
 import java.util.UUID
 
 object LineageHashUtil {
 
   def getUUIDHashOut[T]: T => String = {
-    (v: T) => MessageDigest.getInstance("MD5")
-      .digest(UUID.randomUUID().toString.getBytes()).toString
+    (v: T) => UUID.randomUUID().toString
   }
 
   def getKeyHashOut[K, V](rdd: Lineage[(K, V)]): ((K, V)) => String = {

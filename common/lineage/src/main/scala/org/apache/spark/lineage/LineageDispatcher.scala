@@ -32,20 +32,27 @@ class LineageDispatcher {
 
   val kafkaConfig = new java.util.HashMap[String, Object]()
   kafkaConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
-    "kafka-1:29092,kafka-2:39092,kafka-3:49092")
-  // increase the buffer to handle thirty partitions and generally large volume of data
-  kafkaConfig.put(ProducerConfig.BUFFER_MEMORY_CONFIG, "268435456")
-  // compress with a fast algorithm
+    "localhost:29092,localhost:39092,localhost:49092")
+  // Increase the buffer to handle thirty partitions and generally large volume of data
+  kafkaConfig.put(ProducerConfig.BUFFER_MEMORY_CONFIG, "134217728")
+  // Limit the size of a single request to 2 MB
+  kafkaConfig.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, "2097152")
+  // Compress with a fast algorithm
   kafkaConfig.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "zstd")
+  // Batch up to 512 KB before sending to the server
+  kafkaConfig.put(ProducerConfig.BATCH_SIZE_CONFIG, "524288")
+  // Give the producer 100ms to collect records into the batch
+  kafkaConfig.put(ProducerConfig.LINGER_MS_CONFIG, "100")
+
   // ack the messages to ensure at-least-once semantics
   kafkaConfig.put(ProducerConfig.ACKS_CONFIG, "all")
   // prevent deduplication of messages
   kafkaConfig.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "false")
   // retry - wait for 500ms and try three times
   kafkaConfig.put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG, "500")
-  kafkaConfig.put(ProducerConfig.RETRIES_CONFIG, "3")
   // retry - ensure that messages remain in order
   kafkaConfig.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1")
+  kafkaConfig.put(ProducerConfig.RETRIES_CONFIG, "3")
 
   private val producer = new KafkaProducer(kafkaConfig,
     new StringSerializer(), new StringSerializer())

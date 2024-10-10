@@ -28,9 +28,9 @@ export PYTHONHASHSEED=0
 #export JAVA_TOOL_OPTIONS="-agentlib:jdwp=transport=dt_socket,server=n,address=ip-172-31-34-14.eu-central-1.compute.internal:5005"
 #export JAVA_HOME="/home/ec2-user/.jdks/corretto-1.8.0_422"
 
-exec "${SPARK_HOME}"/bin/spark-class org.apache.spark.deploy.SparkSubmit "$@"
+#exec "${SPARK_HOME}"/bin/spark-class org.apache.spark.deploy.SparkSubmit "$@"
 
-#exec "${SPARK_HOME}"/bin/spark-class org.apache.spark.deploy.SparkSubmit "$@" \
-#--master local[3] \
-#--conf "spark.rdd.intermediateResults=true" \
-#--conf "spark.driver.extraClassPath=./"
+exec "${SPARK_HOME}"/bin/spark-class org.apache.spark.deploy.SparkSubmit "$@" \
+--master local[3] \
+--conf "spark.rdd.lineage.detailed=false" \
+--conf "spark.driver.extraClassPath=./"
