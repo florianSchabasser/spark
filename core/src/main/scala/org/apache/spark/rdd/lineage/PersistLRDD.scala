@@ -35,6 +35,7 @@ private[spark] class PersistLRDD[U: ClassTag, T: ClassTag](
 
   _name = name
   _description = description
+  capture = true
   LineageApi.get.register(nodeId, _name, _description)
   LineageApi.get.flowLink(prev.nodeId, nodeId)
 
@@ -42,19 +43,9 @@ private[spark] class PersistLRDD[U: ClassTag, T: ClassTag](
   override def lineageContext: LineageContext = prev.lineageContext
 
   override def lineage(value: U, context: TaskContext): U = {
-    val hashOut: String = s"write#${context.partitionId()}#${context.getRecordsWritten}"
+    generateHashOut = LineageHashUtil.getHashOutPersist(context)
 
-    if (detailed) {
-      lineage().capture(s"${nodeId}#${context.getRecordId}",
-        context.getFlowHash(), hashOut, extractValue(value))
-    } else {
-      lineage().capture(s"${nodeId}#${context.getRecordId}",
-        context.getFlowHash(), hashOut)
-    }
-
-    context.setFlowHash(hashOut)
-
-    value
+    super.lineage(value, context)
   }
 
   override def compute(split: Partition, context: TaskContext): Iterator[U] = {
