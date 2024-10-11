@@ -51,7 +51,6 @@ trait Lineage[T] extends RDD[T] {
         lineage().capture(s"$nodeId#${context.getRecordId}",
           context.getFlowHash(), hashOut, extractValue(value))
       } else if (capture) {
-        val hashOut: String = generateHashOut(value)
         lineage().capture(s"$nodeId#${context.getRecordId}",
           context.getFlowHash(), hashOut)
       }

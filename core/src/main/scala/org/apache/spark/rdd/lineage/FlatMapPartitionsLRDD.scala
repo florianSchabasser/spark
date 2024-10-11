@@ -45,11 +45,12 @@ private[spark] class FlatMapPartitionsLRDD[U: ClassTag, T: ClassTag](
   override def lineage(value: U, context: TaskContext): U = {
     // handle the fan out by appending a split num, e.g. (0)
     context.setRecordId(incrementNumberInString(context.getRecordId))
+    context.setFlowHash(context.getFlowHash(fixed = true))
 
     if (detailed) {
       val hashOut: String = generateHashOut(value)
       lineage().capture(s"$nodeId#${context.getRecordId}",
-        context.getFlowHash(fixed = true), hashOut, extractValue(value))
+        context.getFlowHash(), hashOut, extractValue(value))
       context.setFlowHash(hashOut)
     }
 

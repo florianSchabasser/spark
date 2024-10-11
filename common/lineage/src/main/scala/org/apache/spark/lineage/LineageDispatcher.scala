@@ -31,8 +31,11 @@ import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 class LineageDispatcher {
 
   val kafkaConfig = new java.util.HashMap[String, Object]()
+  // Local Execution
+  // kafkaConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+  //  "localhost:29092,localhost:39092,localhost:49092")
   kafkaConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
-    "localhost:29092,localhost:39092,localhost:49092")
+   "kafka-1:29092,kafka-2:39092,kafka-3:49092")
   // Increase the buffer to handle thirty partitions and generally large volume of data
   kafkaConfig.put(ProducerConfig.BUFFER_MEMORY_CONFIG, "134217728")
   // Limit the size of a single request to 2 MB
