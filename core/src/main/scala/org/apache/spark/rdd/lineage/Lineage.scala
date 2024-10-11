@@ -44,16 +44,20 @@ trait Lineage[T] extends RDD[T] {
   protected var _description: String = _
 
   def lineage(value: T, context: TaskContext): T = {
-    val hashOut: String = generateHashOut(value)
+    if (detailed || capture) {
+      val hashOut: String = generateHashOut(value)
 
-    if (detailed) {
-      lineage().capture(s"$nodeId#${context.getRecordId}",
-        context.getFlowHash(), hashOut, extractValue(value))
-    } else if (capture) {
-      lineage().capture(s"$nodeId#${context.getRecordId}",
-        context.getFlowHash(), hashOut)
+      if (detailed) {
+        lineage().capture(s"$nodeId#${context.getRecordId}",
+          context.getFlowHash(), hashOut, extractValue(value))
+      } else if (capture) {
+        val hashOut: String = generateHashOut(value)
+        lineage().capture(s"$nodeId#${context.getRecordId}",
+          context.getFlowHash(), hashOut)
+      }
+
+      context.setFlowHash(hashOut)
     }
-    context.setFlowHash(hashOut)
 
     value
   }

@@ -17,6 +17,7 @@
 
 package org.apache.spark.rdd.lineage
 
+import java.security.MessageDigest
 import java.util.UUID
 
 import org.apache.spark.TaskContext
@@ -24,7 +25,10 @@ import org.apache.spark.TaskContext
 object LineageHashUtil {
 
   def getUUIDHashOut[T]: T => String = {
-    (v: T) => UUID.randomUUID().toString
+    (v: T) => MessageDigest.getInstance("MD5")
+      .digest(UUID.randomUUID().toString.getBytes("UTF-8"))
+      // Convert the byte array to a hexadecimal string
+      .map("%02x".format(_)).mkString
   }
 
   def getHashOutPersist[T](context: TaskContext): T => String = {
