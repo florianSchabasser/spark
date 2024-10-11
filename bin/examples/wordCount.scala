@@ -9,14 +9,14 @@
 import org.apache.spark.rdd.lineage.LineageContext
 import org.apache.spark.rdd.lineage.Conversions._
 
-val inputPath = "hdfs://localhost:9000/user/root/input/1MB.txt"
+val inputPath = "hdfs://localhost:9000/user/root/input/mini.txt"
 val outputPath = "hdfs://localhost:9000/user/root/output/words_counted.txt"
 
 val lc = new LineageContext(sc)
 val inputRDD = lc.textFile(inputPath)
 
 val splitData = inputRDD.flatMap(l => l.split(" ")).withDescription("Split words by space")
-val mapdata = splitData.map(w => (w,1)).withDescription("Create pairs (word,1)")
+val mapdata = splitData.map(w => (w,1)).withDescription("Create word pairs")
 val result = mapdata.reduceByKey(_+_)
 
 result.saveAsTextFile(outputPath)

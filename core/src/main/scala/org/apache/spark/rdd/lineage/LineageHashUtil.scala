@@ -19,10 +19,16 @@ package org.apache.spark.rdd.lineage
 
 import java.util.UUID
 
+import org.apache.spark.TaskContext
+
 object LineageHashUtil {
 
   def getUUIDHashOut[T]: T => String = {
     (v: T) => UUID.randomUUID().toString
+  }
+
+  def getHashOutPersist[T](context: TaskContext): T => String = {
+    (v: T) => s"write#${context.partitionId()}#${context.getRecordsWritten}"
   }
 
   def getKeyHashOut[K, V](rdd: Lineage[(K, V)]): ((K, V)) => String = {

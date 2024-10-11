@@ -45,10 +45,10 @@ private[spark] class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
     context.setRecordId(value._1.toString)
 
     if (detailed) {
-      lineage().capture(s"${nodeId}#${context.getRecordId}",
+      lineage().capture(s"$nodeId#${context.getRecordId}",
         s"${_prevNodeId}#${value._1}", hashOut, extractValue(value))
     } else {
-      lineage().capture(s"${nodeId}#${context.getRecordId}",
+      lineage().capture(s"$nodeId#${context.getRecordId}",
         s"${_prevNodeId}#${value._1}", hashOut)
     }
 

@@ -32,5 +32,5 @@ export PYTHONHASHSEED=0
 
 exec "${SPARK_HOME}"/bin/spark-class org.apache.spark.deploy.SparkSubmit "$@" \
 --master local[3] \
---conf "spark.rdd.lineage.detailed=false" \
+--conf "spark.rdd.lineage.detailed=true" \
 --conf "spark.driver.extraClassPath=./"
