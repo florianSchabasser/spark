@@ -44,6 +44,7 @@ import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
 import org.apache.spark.internal.plugin.PluginContainer
+import org.apache.spark.lineage.LineageDispatcher
 import org.apache.spark.memory.{SparkOutOfMemoryError, TaskMemoryManager}
 import org.apache.spark.metrics.source.JVMCPUSource
 import org.apache.spark.resource.ResourceInformation
@@ -84,6 +85,8 @@ private[spark] class Executor(
   logInfo(s"OS info ${System.getProperty("os.name")}, ${System.getProperty("os.version")}, " +
     s"${System.getProperty("os.arch")}")
   logInfo(s"Java version ${System.getProperty("java.version")}")
+
+  LineageDispatcher.start()
 
   private val executorShutdown = new AtomicBoolean(false)
   val stopHookReference = ShutdownHookManager.addShutdownHook(
@@ -408,6 +411,7 @@ private[spark] class Executor(
 
   def stop(): Unit = {
     if (!executorShutdown.getAndSet(true)) {
+      LineageDispatcher.stop()
       ShutdownHookManager.removeShutdownHook(stopHookReference)
       env.metricsSystem.report()
       try {

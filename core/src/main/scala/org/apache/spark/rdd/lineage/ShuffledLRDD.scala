@@ -33,8 +33,8 @@ private[spark] class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
   private val _prevNodeId = prev.nodeId
   _name = name
   _description = description
-  LineageApi.instance.register(nodeId, _name, _description)
-  LineageApi.instance.flowLink(_prevNodeId, nodeId)
+  LineageApi.getInstance.register(nodeId, _name, _description)
+  LineageApi.getInstance.flowLink(_prevNodeId, nodeId)
 
   override def tTag: ClassTag[(K, C)] = classTag[(K, C)]
   override def lineageContext: LineageContext = prev.lineageContext
