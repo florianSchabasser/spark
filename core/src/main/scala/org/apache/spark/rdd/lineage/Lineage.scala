@@ -62,12 +62,12 @@ trait Lineage[T] extends RDD[T] {
   }
 
   def lineage(): ILineageApi = {
-    LineageApi.get.withName(_name).withDescription(_description)
+    LineageApi.instance.withName(_name).withDescription(_description)
   }
 
   def withDescription(description: String): Lineage[T] = {
     _description = description
-    LineageApi.get.register(nodeId, _name, _description)
+    LineageApi.instance.register(nodeId, _name, _description)
     this
   }
 

@@ -36,8 +36,8 @@ private[spark] class PersistLRDD[U: ClassTag, T: ClassTag](
   _name = name
   _description = description
   capture = true
-  LineageApi.get.register(nodeId, _name, _description)
-  LineageApi.get.flowLink(prev.nodeId, nodeId)
+  LineageApi.instance.register(nodeId, _name, _description)
+  LineageApi.instance.flowLink(prev.nodeId, nodeId)
 
   override def tTag: ClassTag[U] = classTag[U]
   override def lineageContext: LineageContext = prev.lineageContext

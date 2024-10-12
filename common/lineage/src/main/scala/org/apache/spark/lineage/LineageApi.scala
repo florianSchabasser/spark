@@ -21,6 +21,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 
 class LineageApi extends ILineageApi with Logging {
+  log.error("Created instance of LineageApi")
 
   private[spark] val dispatcher = new LineageDispatcher()
 
@@ -65,8 +66,5 @@ object LineageApi {
   private[spark] val name: ThreadLocal[String] = new ThreadLocal
   private[spark] val description: ThreadLocal[String] = new ThreadLocal
 
-  private val apiInstance: ILineageApi = new LineageApi()
-
-  def get: ILineageApi = apiInstance
-
+  val instance: ILineageApi = new LineageApi()
 }
