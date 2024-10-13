@@ -25,10 +25,10 @@ import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, Produce
 import org.apache.kafka.common.header.Header
 import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.serialization.StringSerializer
-
+import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 
-class LineageDispatcher {
+class LineageDispatcher extends Logging {
 
   val kafkaConfig = new java.util.HashMap[String, Object]()
   // Local Execution
@@ -85,8 +85,27 @@ class LineageDispatcher {
     producer.send(record)
   }
 
+  def open(): Unit = {
+    log.warn("Open connection to kafka")
+  }
+
   def close(): Unit = {
+    log.warn("Close connection to kafka")
     producer.close()
   }
 
+}
+
+object LineageDispatcher {
+  private[spark] val instance: LineageDispatcher = new LineageDispatcher()
+
+  def stop(): Unit = {
+    instance.close()
+  }
+
+  def start(): Unit = {
+    instance.open()
+  }
+
+  val getInstance: LineageDispatcher = instance
 }

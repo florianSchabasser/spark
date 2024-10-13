@@ -21,28 +21,29 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 
 class LineageApi extends ILineageApi with Logging {
-  log.error("Created instance of LineageApi")
-
-  private[spark] val dispatcher = new LineageDispatcher()
 
   override def register(nodeId: String, name: String, description: String): Unit = {
     val lNodeRegistration: LNodeRegistration = LNodeRegistration(nodeId, name, description)
-    dispatcher.register(LineageApi.messageKey.get(), lNodeRegistration)
+    LineageDispatcher.getInstance.register(LineageApi.messageKey.get(), lNodeRegistration)
   }
 
   override def flowLink(srcNodeId: String, destNodeId: String): Unit = {
-    if (srcNodeId != null && destNodeId != null) dispatcher
-      .link(LineageApi.messageKey.get(), LNodeLink(srcNodeId, destNodeId))
+    if (srcNodeId != null && destNodeId != null) {
+      LineageDispatcher.getInstance
+        .link(LineageApi.messageKey.get(), LNodeLink(srcNodeId, destNodeId))
+    }
   }
 
   override def capture(flowId: String, hashIn: String, hashOut: String,
                        value: String = null): Unit = {
-    dispatcher.capture(LineageApi.messageKey.get(), LFlow(flowId, hashIn, hashOut,
-      LineageApi.name.get(), LineageApi.description.get(), value))
+    LineageDispatcher.getInstance
+      .capture(LineageApi.messageKey.get(), LFlow(flowId, hashIn, hashOut,
+        LineageApi.name.get(), LineageApi.description.get(), value))
   }
 
   override def capture(flowId: String, hashIn: String, hashOut: String): Unit = {
-    dispatcher.capture(LineageApi.messageKey.get(), new LFlow(flowId, hashIn, hashOut))
+    LineageDispatcher.getInstance
+      .capture(LineageApi.messageKey.get(), new LFlow(flowId, hashIn, hashOut))
   }
 
   override def withName(name: String): ILineageApi = {
@@ -65,6 +66,7 @@ object LineageApi {
   private[spark] val messageKey: ThreadLocal[String] = ThreadLocal.withInitial(() => "driver")
   private[spark] val name: ThreadLocal[String] = new ThreadLocal
   private[spark] val description: ThreadLocal[String] = new ThreadLocal
+  private[spark] val instance: ILineageApi = new LineageApi()
 
-  val instance: ILineageApi = new LineageApi()
+  val getInstance: ILineageApi = instance
 }
