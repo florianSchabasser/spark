@@ -107,5 +107,7 @@ object LineageDispatcher {
     instance.open()
   }
 
-  val getInstance: LineageDispatcher = instance
+  def getInstance: LineageDispatcher = {
+    return instance
+  }
 }

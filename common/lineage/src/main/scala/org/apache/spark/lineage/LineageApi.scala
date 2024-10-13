@@ -68,5 +68,7 @@ object LineageApi {
   private[spark] val description: ThreadLocal[String] = new ThreadLocal
   private[spark] val instance: ILineageApi = new LineageApi()
 
-  val getInstance: ILineageApi = instance
+  def getInstance: ILineageApi = {
+    return instance
+  }
 }
