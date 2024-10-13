@@ -39,16 +39,14 @@ class LineageDispatcher {
   // Increase the buffer to handle thirty partitions and generally large volume of data
   kafkaConfig.put(ProducerConfig.BUFFER_MEMORY_CONFIG, "134217728")
   // Limit the size of a single request to 2 MB
-  kafkaConfig.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, "2097152")
-  // Compress with a fast algorithm
-  kafkaConfig.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "zstd")
-  // Batch up to 512 KB before sending to the server
-  kafkaConfig.put(ProducerConfig.BATCH_SIZE_CONFIG, "524288")
+  kafkaConfig.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, "2150400")
+  // Batch up to 500 KB before sending to the server
+  kafkaConfig.put(ProducerConfig.BATCH_SIZE_CONFIG, "512000")
   // Give the producer 100ms to collect records into the batch
   kafkaConfig.put(ProducerConfig.LINGER_MS_CONFIG, "100")
 
   // ack the messages to ensure at-least-once semantics
-  kafkaConfig.put(ProducerConfig.ACKS_CONFIG, "all")
+  kafkaConfig.put(ProducerConfig.ACKS_CONFIG, 1)
   // prevent deduplication of messages
   kafkaConfig.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "false")
   // retry - wait for 500ms and try three times
