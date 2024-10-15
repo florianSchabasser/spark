@@ -24,7 +24,7 @@ case class LFlow(flowId: String, hashIn: String, hashOut: String, value: Any = N
     this(flowId, hashIn, hashOut, null)
 
   def toCsvString(): String = {
-    if (name == null && description == null && value == null) {
+    if (value == null) {
       return s"$flowId;$hashIn;$hashOut"
     }
     return s"$flowId;$hashIn;$hashOut;$value"
