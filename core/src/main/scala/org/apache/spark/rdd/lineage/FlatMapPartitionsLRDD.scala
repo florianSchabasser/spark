@@ -49,7 +49,7 @@ private[spark] class FlatMapPartitionsLRDD[U: ClassTag, T: ClassTag](
 
     if (detailed) {
       val hashOut: String = generateHashOut(value)
-      lineage().capture(s"$nodeId#${context.getRecordId}",
+      LineageApi.getInstance.capture(s"$nodeId#${context.getRecordId}",
         context.getFlowHash(), hashOut, extractValue(value))
       context.setFlowHash(hashOut)
     }

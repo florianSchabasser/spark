@@ -48,10 +48,10 @@ trait Lineage[T] extends RDD[T] {
       val hashOut: String = generateHashOut(value)
 
       if (detailed) {
-        lineage().capture(s"$nodeId#${context.getRecordId}",
+        LineageApi.getInstance.capture(s"$nodeId#${context.getRecordId}",
           context.getFlowHash(), hashOut, extractValue(value))
       } else if (capture) {
-        lineage().capture(s"$nodeId#${context.getRecordId}",
+        LineageApi.getInstance.capture(s"$nodeId#${context.getRecordId}",
           context.getFlowHash(), hashOut)
       }
 
@@ -59,10 +59,6 @@ trait Lineage[T] extends RDD[T] {
     }
 
     value
-  }
-
-  def lineage(): ILineageApi = {
-    LineageApi.getInstance.withName(_name).withDescription(_description)
   }
 
   def withDescription(description: String): Lineage[T] = {

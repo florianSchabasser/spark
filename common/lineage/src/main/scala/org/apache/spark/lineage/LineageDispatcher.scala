@@ -46,7 +46,7 @@ class LineageDispatcher extends Logging {
   kafkaConfig.put(ProducerConfig.LINGER_MS_CONFIG, "100")
 
   // ack the messages to ensure at-least-once semantics
-  kafkaConfig.put(ProducerConfig.ACKS_CONFIG, 1)
+  kafkaConfig.put(ProducerConfig.ACKS_CONFIG, "1")
   // prevent deduplication of messages
   kafkaConfig.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "false")
   // retry - wait for 500ms and try three times
