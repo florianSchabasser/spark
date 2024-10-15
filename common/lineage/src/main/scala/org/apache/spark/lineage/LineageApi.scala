@@ -37,8 +37,7 @@ class LineageApi extends ILineageApi with Logging {
   override def capture(flowId: String, hashIn: String, hashOut: String,
                        value: String = null): Unit = {
     LineageDispatcher.getInstance
-      .capture(LineageApi.messageKey.get(), LFlow(flowId, hashIn, hashOut,
-        LineageApi.name.get(), LineageApi.description.get(), value))
+      .capture(LineageApi.messageKey.get(), LFlow(flowId, hashIn, hashOut, value))
   }
 
   override def capture(flowId: String, hashIn: String, hashOut: String): Unit = {
