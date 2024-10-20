@@ -25,6 +25,7 @@ import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, Produce
 import org.apache.kafka.common.header.Header
 import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.serialization.StringSerializer
+
 import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.dto.{LFlow, LNodeLink, LNodeRegistration}
 
@@ -81,7 +82,8 @@ class LineageDispatcher extends Logging {
   }
 
   def capture(messageKey: String, flow: LFlow): Unit = {
-    val record = new ProducerRecord[String, String]("lineage-flow", messageKey, flow.toCsvString())
+    val record = new ProducerRecord[String, String]("lineage-flow", messageKey.toInt % 30,
+      messageKey, flow.toCsvString())
     producer.send(record)
   }
 
