@@ -37,23 +37,12 @@ class LineageApi extends ILineageApi with Logging {
   override def capture(flowId: String, hashIn: String, hashOut: String,
                        value: String = null): Unit = {
     LineageDispatcher.getInstance
-      .capture(LineageApi.messageKey.get(), LFlow(flowId, hashIn, hashOut,
-        LineageApi.name.get(), LineageApi.description.get(), value))
+      .capture(LineageApi.messageKey.get(), LFlow(flowId, hashIn, hashOut, value))
   }
 
   override def capture(flowId: String, hashIn: String, hashOut: String): Unit = {
     LineageDispatcher.getInstance
       .capture(LineageApi.messageKey.get(), new LFlow(flowId, hashIn, hashOut))
-  }
-
-  override def withName(name: String): ILineageApi = {
-    LineageApi.name.set(name)
-    this
-  }
-
-  override def withDescription(description: String): ILineageApi = {
-    LineageApi.description.set(description)
-    this
   }
 
 }
@@ -64,8 +53,6 @@ object LineageApi {
   // Use partitionId as message key, to process partitions in parallel on backend side
   // but sequential within a task - Retries will write to the same kafka partition
   private[spark] val messageKey: ThreadLocal[String] = ThreadLocal.withInitial(() => "driver")
-  private[spark] val name: ThreadLocal[String] = new ThreadLocal
-  private[spark] val description: ThreadLocal[String] = new ThreadLocal
   private[spark] val instance: ILineageApi = new LineageApi()
 
   def getInstance: ILineageApi = {
