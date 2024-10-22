@@ -36,7 +36,7 @@ trait Lineage[T] extends RDD[T] {
   /** Globally unique ID over multiple SparkContext */
   val nodeId: String = s"${sparkContext.applicationId}#$id"
   /** Flag for detailed lineage */
-  protected val detailed: Boolean = stringToBoolean(sparkContext.getConf
+  var detailed: Boolean = stringToBoolean(sparkContext.getConf
     .get("spark.rdd.lineage.detailed"))
   var capture: Boolean = false
   var generateHashOut: T => String = LineageHashUtil.getUUIDHashOut
@@ -92,6 +92,12 @@ trait Lineage[T] extends RDD[T] {
       name = "Filter")
   }
 
+  def filter(f: T => Boolean, detailed: Boolean): Lineage[T] = {
+    val rdd = filter(f);
+    rdd.detailed = detailed;
+    rdd
+  }
+
   /**
    * Return a new RDD by applying a function to all elements of this RDD.
    */
@@ -101,6 +107,11 @@ trait Lineage[T] extends RDD[T] {
       name = "Map")
   }
 
+  def map[U: ClassTag](f: T => U, detailed: Boolean): Lineage[U] = {
+    val rdd = map(f)
+    rdd.detailed = detailed
+    rdd
+  }
 
   /**
    * Return a new RDD by first applying a function to all elements of this
@@ -110,6 +121,12 @@ trait Lineage[T] extends RDD[T] {
     val cleanF = sparkContext.clean(f)
     new FlatMapPartitionsLRDD[U, T](this, (_, _, iter) => iter.flatMap(cleanF),
       name = "FlatMap")
+  }
+
+  def flatMap[U: ClassTag](f: T => TraversableOnce[U], detailed: Boolean): Lineage[U] = {
+    val rdd = flatMap(f)
+    rdd.detailed = detailed
+    rdd
   }
 
   private def persist[U: ClassTag](f: Iterator[T] => Iterator[U],

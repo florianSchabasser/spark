@@ -110,4 +110,10 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
     this.name = "reduceByKey"
     reduceByKey(defaultPartitioner(self), func)
   }
+
+  def reduceByKey(func: (V, V) => V, detailed: Boolean): Lineage[(K, V)] = {
+    val rdd = reduceByKey(func)
+    rdd.detailed = detailed
+    rdd
+  }
 }
