@@ -35,10 +35,17 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Serializ
    * @param minPartitions suggested minimum number of partitions for the resulting RDD
    * @return RDD of lines of the text file
    */
-  def textFile(path: String,
-               minPartitions: Int = sparkContext.defaultMinPartitions): Lineage[String] = {
+  def textFile(path: String, minPartitions: Int): Lineage[String] = {
     hadoopFile(path, classOf[TextInputFormat], classOf[LongWritable], classOf[Text],
       minPartitions).map(pair => pair._2.toString).setName(path)
+  }
+  def textFile(path: String): Lineage[String] = {
+    textFile(path, sparkContext.defaultMinPartitions)
+  }
+  def textFile(path: String, minPartitions: Int, detailed: Boolean): Lineage[String] = {
+    val rdd = textFile(path, minPartitions)
+    rdd.detailed = detailed
+    rdd
   }
 
   /** Get an RDD for a Hadoop file with an arbitrary InputFormat

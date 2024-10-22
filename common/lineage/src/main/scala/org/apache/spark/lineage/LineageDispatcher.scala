@@ -110,6 +110,6 @@ object LineageDispatcher {
   }
 
   def getInstance: LineageDispatcher = {
-    return instance
+    instance
   }
 }

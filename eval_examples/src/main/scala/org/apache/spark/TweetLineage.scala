@@ -19,26 +19,43 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.lineage.Conversions._
 import org.apache.spark.rdd.lineage.LineageContext
 
+object TweetLineage {
 
-object Grep {
   def main(args: Array[String]): Unit = {
     // Create Spark configuration and context
-    val conf = new SparkConf().setAppName("Grep")
+    val conf = new SparkConf().setAppName("TweetLineage")
     val sc = new SparkContext(conf)
+    val lc = new LineageContext(sc)
 
     // Define input and output paths
     val inputPath = "hdfs://namenode:9000/user/root/input/" + args(0)
     val outputPath = "hdfs://namenode:9000/user/root/output/" + args(1)
-    val searchTerm = args(3)
+    val movieTerm = List("badboys", "inception", "gangstar")
 
     // Read input file
-    val inputRDD = sc.textFile(inputPath, 30)
+    val inputRdd = lc.textFile(inputPath, 30, false)
 
-    // Filter lines containing the search term
-    val matchingLines = inputRDD.filter(line => line.contains(searchTerm))
+    // filter by tags
+    val hashTags = List("#movie", "#film", "#cinema", "#hollywood", "#blockbuster")
+    val filteredRdd = inputRdd.filter(m => hashTags.exists(tag => m.contains(tag)))
 
-    // Save the filtered lines to the output file
-    matchingLines.saveAsTextFile(outputPath)
+    // get the tweet text
+    val textRdd = filteredRdd.map(line => ujson.read(line)("text").toLowerCase())
+
+    // extract the movie name
+    val movieTextRdd = textRdd.map(m => (movieTerm.find(t => m.contains(t)), m))
+
+    // categorize
+    val goodAdjectives = List("incredible", "great", "top-notch", "masterpiece", "perfect")
+    val badAdjectives = List("confusing", "overrated", "unsatisfied", "poor", "bad", "hard")
+    val ratedRdd = movieTextRdd.map(m => (m._1.getOrElse(""),
+        (if (goodAdjectives.exists(a => m._2.contains(a))) 1 else 0,
+        if (badAdjectives.exists(a => m._2.contains(a))) 1 else 0)))
+
+    // count
+    ratedRdd.reduceByKey((x, y) => (x._1 + y._1, x._2 + y._2))
+
+    ratedRdd.saveAsTextFile(outputPath)
 
     // Stop the Spark context
     sc.stop()

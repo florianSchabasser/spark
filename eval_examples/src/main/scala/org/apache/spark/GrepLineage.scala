@@ -30,7 +30,7 @@ object GrepLineage {
     // Define input and output paths
     val inputPath = "hdfs://namenode:9000/user/root/input/" + args(0)
     val outputPath = "hdfs://namenode:9000/user/root/output/" + args(1)
-    val searchTerm = args(3)
+    val searchTerm = args(2)
 
     // Read input file
     val inputRDD = lc.textFile(inputPath, 30)
