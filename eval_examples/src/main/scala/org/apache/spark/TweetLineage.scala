@@ -14,12 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import org.json4s.{DefaultFormats, Formats}
+import org.json4s.jackson.JsonMethods.parse
 
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.lineage.Conversions._
 import org.apache.spark.rdd.lineage.LineageContext
 
 object TweetLineage {
+
+  implicit val formats: Formats = DefaultFormats
+  case class Movie(text: String)
 
   def main(args: Array[String]): Unit = {
     // Create Spark configuration and context
@@ -40,7 +45,7 @@ object TweetLineage {
     val filteredRdd = inputRdd.filter(m => hashTags.exists(tag => m.contains(tag)))
 
     // get the tweet text
-    val textRdd = filteredRdd.map(line => ujson.read(line)("text").toLowerCase())
+    val textRdd = filteredRdd.map(line => parse(line).extract[Movie].text.toLowerCase())
 
     // extract the movie name
     val movieTextRdd = textRdd.map(m => (movieTerm.find(t => m.contains(t)), m))
