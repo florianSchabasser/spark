@@ -57,9 +57,9 @@ object Tweet {
         if (badAdjectives.exists(a => m._2.contains(a))) 1 else 0)))
 
     // count
-    ratedRdd.reduceByKey((x, y) => (x._1 + y._1, x._2 + y._2))
+    val reducedRdd = ratedRdd.reduceByKey((x, y) => (x._1 + y._1, x._2 + y._2))
 
-    ratedRdd.saveAsTextFile(outputPath)
+    reducedRdd.saveAsTextFile(outputPath)
 
     // Stop the Spark context
     sc.stop()
