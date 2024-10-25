@@ -35,15 +35,19 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Serializ
    * @param minPartitions suggested minimum number of partitions for the resulting RDD
    * @return RDD of lines of the text file
    */
+  def textFile(path: String): Lineage[String] = {
+    textFile(path, sparkContext.defaultMinPartitions)
+  }
   def textFile(path: String, minPartitions: Int): Lineage[String] = {
     hadoopFile(path, classOf[TextInputFormat], classOf[LongWritable], classOf[Text],
       minPartitions).map(pair => pair._2.toString).setName(path)
   }
-  def textFile(path: String): Lineage[String] = {
-    textFile(path, sparkContext.defaultMinPartitions)
+  def textFile(path: String, detailed: Boolean): Lineage[String] = {
+    textFile(path, sparkContext.defaultMinPartitions, detailed)
   }
   def textFile(path: String, minPartitions: Int, detailed: Boolean): Lineage[String] = {
-    val rdd = textFile(path, minPartitions)
+    val rdd = hadoopFile(path, classOf[TextInputFormat], classOf[LongWritable], classOf[Text],
+      minPartitions, detailed).map(pair => pair._2.toString).setName(path)
     rdd.detailed = detailed
     rdd
   }
@@ -68,7 +72,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Serializ
                         inputFormatClass: Class[_ <: InputFormat[K, V]],
                         keyClass: Class[K],
                         valueClass: Class[V],
-                        minPartitions: Int = sparkContext.defaultMinPartitions): Lineage[(K, V)] = {
+                        minPartitions: Int): Lineage[(K, V)] = {
     // This is a hack to enforce loading hdfs-site.xml.
     // See SPARK-11227 for details.
     FileSystem.getLocal(sparkContext.hadoopConfiguration)
@@ -86,5 +90,18 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Serializ
       valueClass,
       minPartitions,
       name = "Read", description = s"Read from $path").setName(path)
+  }
+
+  def hadoopFile[K, V](
+                        path: String,
+                        inputFormatClass: Class[_ <: InputFormat[K, V]],
+                        keyClass: Class[K],
+                        valueClass: Class[V],
+                        minPartitions: Int,
+                        detailed: Boolean): Lineage[(K, V)] = {
+    val hadoopRdd: Lineage[(K, V)] =
+      hadoopFile(path, inputFormatClass, keyClass, valueClass, minPartitions)
+    hadoopRdd.detailed = detailed
+    hadoopRdd
   }
 }

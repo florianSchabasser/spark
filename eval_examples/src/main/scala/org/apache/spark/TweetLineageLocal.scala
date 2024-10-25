@@ -21,22 +21,22 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.lineage.Conversions._
 import org.apache.spark.rdd.lineage.LineageContext
 
-object TweetLineage {
+object TweetLineageLocal {
 
   implicit val formats: Formats = DefaultFormats
   case class Movie(text: String) extends Serializable
 
   def main(args: Array[String]): Unit = {
     // Create Spark configuration and context
-    val conf = new SparkConf().setAppName("TweetLineage")
+    val conf = new SparkConf().setAppName("TweetLineageLocal")
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
 
     // Define input and output paths
-    val inputPath = "hdfs://namenode:9000/user/root/input/" + args(0)
-    val outputPath = "hdfs://namenode:9000/user/root/output/" + args(1)
-    val movieTerm = List("badboys", "inception", "gangstar", "breakingbad", "matrix",
-      "interstellar", "thegodfather", "pulpfiction", "fightclub", "thedarkknight")
+    val inputPath = "hdfs://localhost:9000/user/root/input/tweets_10.txt"
+    val outputPath = "hdfs://localhost:9000/user/root/output/tweets_10.txt"
+    val movieTerm = List("badboys", "inception", "gangstar")
+
     // Read input file
     val inputRdd = lc.textFile(inputPath, 30, false)
 
